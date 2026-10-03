@@ -1,0 +1,20 @@
+{
+  "name": "gm-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Autonomous AI game master that runs a daily puzzle game and manages its own on-chain treasury (Base Sepolia).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
