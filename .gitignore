@@ -1,9 +1,19 @@
 node_modules/
 dist/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.DS_Store
+
+# secrets — never commit
 .env
 .env.*
 !.env.example
+.agent-wallet.json
+
 *.db
 *.db-journal
 *.sqlite
 logs/
+.tmp/
+.vercel
