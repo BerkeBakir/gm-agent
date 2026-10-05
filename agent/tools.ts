@@ -1,14 +1,15 @@
 /**
- * YOUR AGENT'S TOOLS
+ * GM AGENT TOOLS
  *
  * A tool is just a function the agent is allowed to call.
  * Gemini reads the `description` to decide WHEN to use it,
  * and `parameters` to know WHAT to pass in.
- *
- * Add your own tool: copy one of the objects below, change it,
- * and save. It shows up in the "Tools" list on the page.
  */
-import { getWalletAddress, getWalletBalance, payAndFetch } from "./wallet";
+import { formatEther } from "viem";
+import { createBaseSepoliaClient, EXPLORER_URL, getEthBalance, getUsdcBalance } from "@/src/chain/base-sepolia";
+import { getGameStore, toPublicChallenge, validateNewChallenge } from "@/src/game";
+import { formatUsdc } from "@/src/wallet/usdc";
+import { getWalletAddress } from "./wallet";
 
 export type Tool = {
   name: string;
@@ -20,44 +21,60 @@ export type Tool = {
 };
 
 export const tools: Tool[] = [
-  // ─── 1. A paid API: the agent's wallet signs a payment to unlock it ───
   {
-    name: "get_weather",
-    description: "Get the current weather for a city. Costs 0.01 USDC, paid automatically from the agent's wallet.",
+    name: "create_challenge",
+    description:
+      "Publish a new daily challenge (a riddle or logic puzzle) for the players. Write an ORIGINAL puzzle with one " +
+      "short, unambiguous answer. The answer key is stored privately for grading and never shown to players. " +
+      "Publishing a new challenge closes the previous one and starts the next game day.",
     parameters: {
       type: "object",
       properties: {
-        city: { type: "string", description: "City name, e.g. Mumbai" },
+        difficulty: { type: "string", enum: ["easy", "medium", "hard"], description: "How hard the puzzle is." },
+        question: { type: "string", description: "The puzzle text shown to players." },
+        answer: { type: "string", description: "The correct answer, as short as possible (ideally 1-3 words)." },
+        acceptedAnswers: {
+          type: "array",
+          items: { type: "string" },
+          description: "Other wordings that should also count as correct, e.g. with or without an article.",
+        },
       },
-      required: ["city"],
+      required: ["difficulty", "question", "answer"],
     },
-    run: async ({ city }, { baseUrl }) => {
-      return payAndFetch(`${baseUrl}/api/weather?city=${encodeURIComponent(city)}`);
+    run: async (args) => {
+      const challenge = await getGameStore().createChallenge(validateNewChallenge(args));
+      return { published: toPublicChallenge(challenge) };
     },
   },
 
-  // ─── 2. Wallet tool: read the agent's own wallet ───
   {
-    name: "get_my_wallet",
-    description: "Get the agent's own wallet address and its ETH balance on Base Sepolia (testnet).",
+    name: "get_today_challenge",
+    description: "Get the challenge that is currently open for players (without the answer key).",
     parameters: { type: "object", properties: {} },
-    run: async () => ({
-      address: getWalletAddress(),
-      balance: await getWalletBalance(),
-      network: "Base Sepolia (testnet)",
-    }),
+    run: async () => {
+      const challenge = await getGameStore().getCurrentChallenge();
+      return challenge ? { challenge: toPublicChallenge(challenge) } : { challenge: null, note: "No challenge is open yet." };
+    },
   },
 
-  // ─── 3. A plain tool: no wallet, no API. Try changing this one first! ───
   {
-    name: "roll_dice",
-    description: "Roll a dice with the given number of sides.",
-    parameters: {
-      type: "object",
-      properties: {
-        sides: { type: "number", description: "How many sides the dice has. Default 6." },
-      },
+    name: "get_treasury_balance",
+    description:
+      "Read the game treasury on-chain: the agent wallet's USDC balance (used for player rewards) and ETH balance " +
+      "(used only for gas) on Base Sepolia testnet.",
+    parameters: { type: "object", properties: {} },
+    run: async () => {
+      const address = getWalletAddress();
+      if (!address) throw new Error("The agent has no wallet yet.");
+      const client = createBaseSepoliaClient();
+      const [usdc, eth] = await Promise.all([getUsdcBalance(client, address), getEthBalance(client, address)]);
+      return {
+        address,
+        usdc: formatUsdc(usdc),
+        eth: `${formatEther(eth)} ETH`,
+        network: "Base Sepolia (testnet)",
+        explorer: `${EXPLORER_URL}/address/${address}`,
+      };
     },
-    run: async ({ sides = 6 }) => ({ rolled: Math.floor(Math.random() * sides) + 1, sides }),
   },
 ];

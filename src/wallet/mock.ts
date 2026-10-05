@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { type Address, InsufficientFundsError, type TransferResult, type Wallet } from "./types.js";
+import { type Address, InsufficientFundsError, type TransferResult, type Wallet } from "./types";
 
 /** In-memory wallet for tests and off-chain simulations. */
 export class MockWallet implements Wallet {

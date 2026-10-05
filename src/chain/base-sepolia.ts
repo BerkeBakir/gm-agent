@@ -1,6 +1,6 @@
 import { createPublicClient, erc20Abi, getAddress, http } from "viem";
 import { baseSepolia } from "viem/chains";
-import type { Address } from "../wallet/types.js";
+import type { Address } from "../wallet/types";
 
 /** Circle's official testnet USDC on Base Sepolia. */
 export const BASE_SEPOLIA_USDC: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";

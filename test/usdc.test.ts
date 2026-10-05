@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatUsdc, parseUsdc } from "../src/wallet/usdc.js";
+import { formatUsdc, parseUsdc } from "../src/wallet/usdc";
 
 describe("parseUsdc", () => {
   it("converts human-readable amounts to 6-decimal base units", () => {

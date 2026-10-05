@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MockWallet } from "../src/wallet/mock.js";
-import { InsufficientFundsError } from "../src/wallet/types.js";
+import { MockWallet } from "../src/wallet/mock";
+import { InsufficientFundsError } from "../src/wallet/types";
 
 const PLAYER = "0x000000000000000000000000000000000000beef";
 

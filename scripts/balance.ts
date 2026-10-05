@@ -5,8 +5,8 @@ import {
   EXPLORER_URL,
   getEthBalance,
   getUsdcBalance,
-} from "../src/chain/base-sepolia.js";
-import { formatUsdc } from "../src/wallet/usdc.js";
+} from "../src/chain/base-sepolia";
+import { formatUsdc } from "../src/wallet/usdc";
 
 const address = process.argv[2];
 if (!address || !isAddress(address)) {

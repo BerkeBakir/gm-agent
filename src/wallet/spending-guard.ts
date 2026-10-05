@@ -1,4 +1,4 @@
-import type { Address, TransferResult, Wallet } from "./types.js";
+import type { Address, TransferResult, Wallet } from "./types";
 
 export interface SpendingLimits {
   /** Hard cap for a single payment (USDC base units). */

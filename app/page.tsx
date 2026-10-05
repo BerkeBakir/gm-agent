@@ -25,8 +25,9 @@ type Step = { tool: string; args: unknown; result: any; error?: boolean };
 type Message = { role: "user" | "agent"; text: string; steps?: Step[]; error?: boolean };
 type Status = { hasApiKey: boolean; model: string; tools: { name: string; description: string }[] };
 type WalletInfo = { address: string | null; balance?: string };
+type PublicChallenge = { id: string; day: number; difficulty: string; question: string; status: string; createdAt: string };
 
-const EXAMPLES = ["What's the weather in Mumbai?", "What's in your wallet?", "Roll a 20 sided dice"];
+const EXAMPLES = ["Create today's challenge, make it easy", "What's today's challenge?", "How much is in the treasury?"];
 
 export default function Home() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -35,13 +36,20 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [challenge, setChallenge] = useState<PublicChallenge | null | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadWallet = () => fetch("/api/wallet").then((r) => r.json()).then(setWallet);
+  const loadChallenge = () =>
+    fetch("/api/challenge")
+      .then((r) => r.json())
+      .then((d) => setChallenge(d.challenge))
+      .catch(() => setChallenge(null));
 
   useEffect(() => {
     fetch("/api/agent").then((r) => r.json()).then(setStatus);
     loadWallet();
+    loadChallenge();
   }, []);
 
   useEffect(() => {
@@ -71,6 +79,7 @@ export default function Home() {
       const data = await res.json();
       setMessages((m) => [...m, data.error ? { role: "agent", text: data.error, error: true } : { role: "agent", text: data.answer, steps: data.steps }]);
       if (data.steps?.some((s: Step) => s.result?.payment)) loadWallet();
+      if (data.steps?.some((s: Step) => s.tool === "create_challenge" && !s.error)) loadChallenge();
     } catch {
       setMessages((m) => [...m, { role: "agent", text: "Could not reach the server. Is `npm run dev` still running?", error: true }]);
     }
@@ -86,21 +95,45 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Label>
             <img src="/risein-logo.svg" alt="Rise In" className="mr-3 h-5 w-auto" />
-            <span className="text-foreground">/ Agentmaxxing</span>&nbsp;starter kit
+            <span className="text-foreground">/ Agentmaxxing</span>&nbsp;GM Agent
           </Label>
           {status && <Label>Model: {status.model}</Label>}
         </div>
         <h1 className="text-5xl leading-[0.9] font-bold tracking-[-0.045em] uppercase md:text-7xl">
-          Agentic <span className="text-primary">starter.</span>
+          GM <span className="text-primary">Agent.</span>
         </h1>
         <p className="max-w-xl text-lg text-muted-foreground">
-          An AI agent that uses your tools and pays for APIs with its own wallet.
+          An autonomous game master that runs a daily puzzle game and manages its own on-chain treasury.
         </p>
       </header>
 
       <div className="grid flex-1 gap-6 lg:grid-cols-[380px_1fr]">
-        {/* Left: setup + tools */}
+        {/* Left: challenge + setup + tools */}
         <aside className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <SectionTitle num="00" title="Today's challenge" />
+              <CardAction>
+                <Button variant="ghost" size="icon-xs" onClick={loadChallenge} aria-label="Refresh challenge">
+                  <RefreshCw />
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {challenge === undefined && <p className="text-muted-foreground">Loading...</p>}
+              {challenge === null && <p className="text-muted-foreground">No challenge yet. Ask the GM to create one.</p>}
+              {challenge && (
+                <>
+                  <div className="flex items-center gap-2 font-mono text-xs uppercase">
+                    <span className="text-muted-foreground">Day {challenge.day}</span>
+                    <Badge variant="outline" className="font-mono uppercase">{challenge.difficulty}</Badge>
+                  </div>
+                  <p className="text-lg leading-snug font-medium">{challenge.question}</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <SectionTitle num="01" title="Setup" />
@@ -180,7 +213,7 @@ export default function Home() {
                       {!ready
                         ? "Add your Gemini API key to start."
                         : wallet && !wallet.address
-                          ? "Tip: create a wallet first so the agent can pay for the weather API."
+                          ? "Tip: create a wallet first so the agent has a treasury."
                           : "Pick an example to start."}
                     </p>
                   </div>
