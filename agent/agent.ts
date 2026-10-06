@@ -7,6 +7,7 @@
  *   3. If Gemini answers with text -> done.
  */
 import { GoogleGenAI, type Content, type Part } from "@google/genai";
+import { generateWithFallback } from "@/src/llm/gemini";
 import { tools } from "./tools";
 
 export const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
@@ -38,8 +39,7 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
   const steps: Step[] = [];
 
   for (let i = 0; i < MAX_STEPS; i++) {
-    const response = await ai.models.generateContent({
-      model: MODEL,
+    const response = await generateWithFallback(ai, {
       contents,
       config: {
         systemInstruction: SYSTEM_PROMPT,
