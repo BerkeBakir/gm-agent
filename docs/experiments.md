@@ -46,7 +46,7 @@ compare strategies under the same conditions, not to predict real players.
 | `adaptive` | today's income + 2% of treasury, split | one step toward the target band every day |
 | `adaptive-v2` | same as adaptive | moves only if far outside the band or outside two days in a row |
 | `generous-no-cap` | same as generous, **with the 10% daily cap removed** (ablation) | always easy |
-| `gemini:*` | Gemini decides (balanced / treasurer / entertainer persona) | Gemini decides |
+| `gemini:*` | Gemini decides (3 personas × 2 prompt versions) | Gemini decides |
 
 ## Results (30 days, mean of 5 seeds)
 
@@ -90,9 +90,44 @@ All amounts in USDC. "Bankrupt" = treasury fell below 10 entry fees.
 
 ## Gemini personas
 
-`npm run simulate -- --llm` runs the same 30 days with Gemini making the decision (3 personas:
-`balanced`, `treasurer`, `entertainer`). Results and the LLM's day-by-day reasoning are written to
-`docs/sim/gemini-*.csv`. _Pending: requires a Gemini API key; this section is filled in after the run._
+`npm run simulate -- --llm` runs the same 30 days (seed 1) with Gemini making every end-of-day
+decision, for 3 personas (`balanced`, `treasurer`, `entertainer`) and 2 prompt versions. The LLM's
+day-by-day reasoning is in `docs/sim/gemini-*.csv`. All runs below had **0 fallbacks** (every
+decision was really made by Gemini).
+
+| Gemini run | Final treasury | Last-week players | Paid out | Days in band | Difficulty switches |
+|---|---:|---:|---:|---:|---:|
+| balanced, prompt v1 | 22.29 | 22.4 | 99.31 | 13 | 23 |
+| treasurer, prompt v1 | 25.61 | 22.1 | 94.79 | 10 | 23 |
+| entertainer, prompt v1 | 22.14 | 22.4 | 99.46 | 13 | 23 |
+| balanced, prompt v2 | 26.60 | 23.0 | 89.70 | 8 | 23 |
+| **treasurer, prompt v2** | **39.43** | 20.3 | 73.87 | 9 | 22 |
+| entertainer, prompt v2 | 27.78 | 20.6 | 90.22 | 11 | 19 |
+
+**What we saw with prompt v1.** The personas barely mattered: "conservative treasurer" and
+"fun-first entertainer" paid almost the same. Reading the reasoning, Gemini anchored on the hard
+limit — it often set the reward to exactly `daily budget ÷ winners` ("0.4 USDC, as the daily budget of
+5.2 USDC divided by 13 winners"). It also flipped difficulty medium↔hard almost every day, i.e. it
+reproduced the naive `adaptive` controller.
+
+**Prompt v2** added two lessons from the rule-based experiments: *the daily budget is a ceiling, not
+a target — a sustainable payout is about income + 2% of treasury*, and *don't change difficulty on one
+noisy day*.
+
+- ✅ **The economic lesson worked.** Payouts dropped and the personas finally diverged: the v2
+  treasurer ended with **39.4 USDC vs 25.6** under v1 (and vs 27.6 for the best rule-based strategy),
+  at the cost of ~2 fewer daily players in the last week.
+- ❌ **The control lesson did not.** Difficulty switches stayed at 19–23. Gemini explains each day's
+  move sensibly in isolation but doesn't apply a rule that depends on yesterday.
+- **Takeaway:** an LLM is good at the *judgment* part (how generous to be, explained in words) and
+  unreliable at *stateful control rules*. Same conclusion as the spending cap: anything that must
+  always hold belongs in code. The natural next step is enforcing difficulty hysteresis in code, like
+  the budget guardrail, and letting Gemini decide only within it.
+
+Caveat: one seed per Gemini run (LLM calls are slow and rate-limited), so treat differences of a few
+USDC as noise; the v1→v2 treasurer gap and the unchanged switching are large enough to be meaningful.
+
+Production uses prompt v2 with the `balanced` persona.
 
 ## Failures found along the way
 

@@ -56,11 +56,27 @@ export function describeState(s: GameState) {
 export class GeminiDecisionMaker implements DecisionMaker {
   readonly name: string;
 
-  constructor(private readonly persona: Persona = "balanced") {
-    this.name = `gemini:${persona}`;
+  /**
+   * promptVersion 1: original prompt.
+   * promptVersion 2: added after experiments showed v1 (a) treating the daily cap as a target and
+   * (b) flipping difficulty every day on noisy win rates, exactly like the naive rule-based controller.
+   */
+  constructor(
+    private readonly persona: Persona = "balanced",
+    private readonly promptVersion: 1 | 2 = 2,
+  ) {
+    this.name = `gemini:${persona}${promptVersion === 1 ? ":v1" : ""}`;
   }
 
   async decide(state: GameState): Promise<Decision> {
+    const v2 =
+      this.promptVersion === 2
+        ? [
+            "Lessons from earlier runs, follow them:",
+            "- The daily budget is a CEILING, not a target. A sustainable total payout is roughly today's entry-fee income plus a small slice (about 2%) of the treasury. Pay more only with a clear reason (e.g. participation is falling).",
+            "- Win rate from ~20 players is noisy. Do NOT change difficulty because of one day just outside the band. Change it only if today is far outside the band (more than 0.15 away) or outside on the same side two days in a row (see previous_days).",
+          ]
+        : [];
     const prompt = [
       PERSONAS[this.persona],
       "You run a daily puzzle game. Players pay a small USDC entry fee (x402) to answer; correct answers split a reward from your treasury.",
@@ -68,6 +84,7 @@ export class GeminiDecisionMaker implements DecisionMaker {
       "Economics: if you pay too much the treasury drains and the game dies; if you pay too little players stop coming and income falls.",
       `Aim for a win rate between ${state.targetWinRate.min} and ${state.targetWinRate.max}.`,
       "The hard limits are enforced in code after your decision; proposing more will simply be cut.",
+      ...v2,
       "Explain your reasoning in 1-3 short sentences, citing the numbers you used.",
       "",
       "GAME STATE (JSON):",

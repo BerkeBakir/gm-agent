@@ -37,7 +37,9 @@ if (withLlm) {
       return inner.decide(s);
     },
   });
-  for (const p of ["balanced", "treasurer", "entertainer"] as Persona[]) runs.push({ make: () => throttled(new GeminiDecisionMaker(p)) });
+  for (const version of [1, 2] as const) {
+    for (const p of ["balanced", "treasurer", "entertainer"] as Persona[]) runs.push({ make: () => throttled(new GeminiDecisionMaker(p, version)) });
+  }
 }
 
 const results: { name: string; perSeed: SimResult[] }[] = [];
