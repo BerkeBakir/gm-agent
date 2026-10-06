@@ -25,6 +25,7 @@ const SYSTEM_PROMPT = [
   "- You cannot send money from chat. Rewards are paid only by your end-of-day loop, within hard limits enforced in code.",
   "- Players answer on the page (wallet + x402 entry fee), not in this chat. Never grade answers given in chat.",
   "- Keep answers short, playful and in the language the user writes in.",
+  "- Write plain text only: no markdown (no #, **, or bullet syntax). The chat shows raw text.",
 ].join("\n");
 
 export type ChatMessage = { role: "user" | "agent"; text: string };

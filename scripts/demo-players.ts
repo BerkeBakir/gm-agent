@@ -51,6 +51,9 @@ for (const [i, answer] of answers.entries()) {
   if (bal < fund) {
     const tx = await agent.transfer(bot.address, fund - bal);
     console.log(`bot${i + 1} ${bot.address} topped up → ${EXPLORER_URL}/tx/${tx.txHash}`);
+    // Public RPC nodes can lag a few seconds behind; wait until the new balance is visible.
+    for (let t = 0; t < 15 && (await getUsdcBalance(client, bot.address)) < fund; t++) await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 3000));
   }
 
   const first = await fetch(`${URL_BASE}/api/submit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ answer }) });
