@@ -81,6 +81,11 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
   const state = await buildGameState(deps);
   const notes: string[] = [];
 
+  // Claim the day atomically, so a cron run and a manual run can never both pay the same winners.
+  if (state.challenge && !(await store.closeChallenge(state.challenge.id))) {
+    throw new Error(`Day ${state.day} is already being closed by another run.`);
+  }
+
   let decidedBy = deps.decider.name;
   let proposal: Decision;
   if (!state.challenge) {

@@ -18,9 +18,14 @@ export interface GameStore {
   getCurrentChallenge(): Promise<Challenge | null>;
   getChallenge(id: string): Promise<Challenge | null>;
   listChallenges(limit: number): Promise<Challenge[]>;
+  /** Atomically closes an open challenge. Returns false if it was already closed (someone else is closing the day). */
+  closeChallenge(id: string): Promise<boolean>;
 
   /** One submission per wallet per challenge; throws DuplicateSubmissionError otherwise. */
   addSubmission(input: NewSubmission): Promise<Submission>;
+  /** Rolls back a submission whose entry-fee settlement failed. */
+  removeSubmission(id: string): Promise<void>;
+  setFeeTx(id: string, txHash: string): Promise<void>;
   hasSubmitted(challengeId: string, player: string): Promise<boolean>;
   getSubmissions(challengeId: string): Promise<Submission[]>;
   recordReward(submissionId: string, amount: bigint, txHash?: string): Promise<void>;
@@ -60,6 +65,22 @@ export class MemoryGameStore implements GameStore {
 
   async listChallenges(limit: number): Promise<Challenge[]> {
     return this.challenges.slice(-limit).reverse().map((c) => ({ ...c }));
+  }
+
+  async closeChallenge(id: string): Promise<boolean> {
+    const c = this.challenges.find((x) => x.id === id);
+    if (!c || c.status !== "open") return false;
+    c.status = "closed";
+    return true;
+  }
+
+  async removeSubmission(id: string): Promise<void> {
+    this.submissions = this.submissions.filter((s) => s.id !== id);
+  }
+
+  async setFeeTx(id: string, txHash: string): Promise<void> {
+    const s = this.submissions.find((x) => x.id === id);
+    if (s) s.feeTx = txHash;
   }
 
   async addSubmission(input: NewSubmission): Promise<Submission> {

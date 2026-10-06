@@ -64,28 +64,30 @@ export async function POST(req: Request) {
     return Response.json({ x402Version: X402_VERSION, error: "Insufficient USDC balance", accepts: [requirements] }, { status: 402 });
   }
 
-  let txHash: string;
+  // Reserve the (wallet, challenge) slot FIRST — the unique index makes concurrent
+  // duplicates fail here, before anyone is charged. Roll back if settlement fails.
+  let submission;
   try {
-    txHash = await settlePayment(payment, wallet);
-  } catch (err) {
-    return Response.json({ error: `Payment settlement failed: ${err instanceof Error ? err.message : String(err)}` }, { status: 502 });
-  }
-
-  try {
-    await store.addSubmission({
+    submission = await store.addSubmission({
       challengeId: challenge.id,
       player,
       answer,
       correct: isCorrectAnswer(answer, challenge),
       fee,
-      feeTx: txHash,
     });
   } catch (err) {
-    if (err instanceof DuplicateSubmissionError) {
-      return Response.json({ error: err.message, feeTx: txHash }, { status: 409 });
-    }
+    if (err instanceof DuplicateSubmissionError) return Response.json({ error: err.message }, { status: 409 });
     throw err;
   }
+
+  let txHash: string;
+  try {
+    txHash = await settlePayment(payment, wallet);
+  } catch (err) {
+    await store.removeSubmission(submission.id);
+    return Response.json({ error: `Payment settlement failed: ${err instanceof Error ? err.message : String(err)}` }, { status: 502 });
+  }
+  await store.setFeeTx(submission.id, txHash);
 
   const paymentResponse = Buffer.from(JSON.stringify({ success: true, transaction: txHash, network: NETWORK, payer: player })).toString("base64");
   return Response.json(

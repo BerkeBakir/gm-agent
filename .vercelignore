@@ -1,6 +1,7 @@
 .env
 .env.*
 .agent-wallet.json
+.demo-players.json
 .tmp
 node_modules
 .next

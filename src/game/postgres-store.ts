@@ -203,6 +203,23 @@ export class PostgresGameStore implements GameStore {
     return rows.map(toChallenge);
   }
 
+  async closeChallenge(id: string): Promise<boolean> {
+    await this.init();
+    const rows = await this.sql`
+      UPDATE challenges SET status = 'closed' WHERE id = ${id} AND status = 'open' RETURNING id`;
+    return rows.length > 0;
+  }
+
+  async removeSubmission(id: string): Promise<void> {
+    await this.init();
+    await this.sql`DELETE FROM submissions WHERE id = ${id}`;
+  }
+
+  async setFeeTx(id: string, txHash: string): Promise<void> {
+    await this.init();
+    await this.sql`UPDATE submissions SET fee_tx = ${txHash} WHERE id = ${id}`;
+  }
+
   async addSubmission(input: NewSubmission): Promise<Submission> {
     await this.init();
     try {
