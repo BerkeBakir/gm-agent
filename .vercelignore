@@ -1,0 +1,6 @@
+.env
+.env.*
+.agent-wallet.json
+.tmp
+node_modules
+.next

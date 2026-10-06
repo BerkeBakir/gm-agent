@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:memory": "node scripts/dev-memory.mjs",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",

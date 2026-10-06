@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gm-agent",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:memory", "--", "-p", "3005"],
+      "port": 3005
+    }
+  ]
+}

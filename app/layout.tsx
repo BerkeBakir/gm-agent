@@ -6,7 +6,10 @@ import { cn } from "@/lib/utils";
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 
-export const metadata = { title: "Agentic Starter" };
+export const metadata = {
+  title: "GM Agent — an AI game master with its own treasury",
+  description: "An autonomous AI game master that runs a daily puzzle game and manages its own USDC treasury on Base Sepolia, with x402 entry fees.",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

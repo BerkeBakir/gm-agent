@@ -20,14 +20,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { AdminPanel, DecisionLogList, Leaderboard, PastChallenges, TreasuryStats } from "@/components/gm/dashboard";
+import type { GameStateResponse } from "@/components/gm/format";
+import { PlayPanel } from "@/components/gm/play-panel";
 
 type Step = { tool: string; args: unknown; result: any; error?: boolean };
 type Message = { role: "user" | "agent"; text: string; steps?: Step[]; error?: boolean };
 type Status = { hasApiKey: boolean; model: string; tools: { name: string; description: string }[] };
 type WalletInfo = { address: string | null; balance?: string };
-type PublicChallenge = { id: string; day: number; difficulty: string; question: string; status: string; createdAt: string };
-
-const EXAMPLES = ["Create today's challenge, make it easy", "What's today's challenge?", "How much is in the treasury?"];
+const EXAMPLES = ["What's today's challenge?", "How healthy is your treasury?", "Why did you pay what you paid yesterday?", "What are the rules?"];
 
 export default function Home() {
   const [status, setStatus] = useState<Status | null>(null);
@@ -36,20 +37,23 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [challenge, setChallenge] = useState<PublicChallenge | null | undefined>(undefined);
+  const [game, setGame] = useState<GameStateResponse | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadWallet = () => fetch("/api/wallet").then((r) => r.json()).then(setWallet);
   const loadChallenge = () =>
-    fetch("/api/challenge")
+    fetch("/api/state")
       .then((r) => r.json())
-      .then((d) => setChallenge(d.challenge))
-      .catch(() => setChallenge(null));
+      .then(setGame)
+      .catch(() => {});
+  const challenge = game ? game.challenge : undefined;
 
   useEffect(() => {
     fetch("/api/agent").then((r) => r.json()).then(setStatus);
     loadWallet();
     loadChallenge();
+    const timer = setInterval(loadChallenge, 30_000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -127,8 +131,10 @@ export default function Home() {
                   <div className="flex items-center gap-2 font-mono text-xs uppercase">
                     <span className="text-muted-foreground">Day {challenge.day}</span>
                     <Badge variant="outline" className="font-mono uppercase">{challenge.difficulty}</Badge>
+                    <span className="ml-auto text-muted-foreground">{challenge.participants} played</span>
                   </div>
                   <p className="text-lg leading-snug font-medium">{challenge.question}</p>
+                  <PlayPanel entryFee={game?.rules.entryFee} onSubmitted={loadChallenge} />
                 </>
               )}
             </CardContent>
@@ -136,7 +142,17 @@ export default function Home() {
 
           <Card>
             <CardHeader>
-              <SectionTitle num="01" title="Setup" />
+              <SectionTitle num="01" title="Treasury" />
+            </CardHeader>
+            <CardContent>
+              <TreasuryStats state={game} />
+            </CardContent>
+          </Card>
+
+          {(!ready || !wallet?.address) && (
+          <Card>
+            <CardHeader>
+              <SectionTitle num="02" title="Setup" />
             </CardHeader>
             <CardContent className="flex flex-col">
               <SetupStep number={1} title="Add your Gemini API key" done={ready}>
@@ -168,22 +184,23 @@ export default function Home() {
               </SetupStep>
             </CardContent>
           </Card>
+          )}
 
           <Card>
             <CardHeader>
-              <SectionTitle num="02" title="Tools" />
+              <SectionTitle num="02" title="Agent tools" />
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="flex flex-col gap-3">
               {status?.tools.map((t) => (
                 <div key={t.name}>
                   <p className="font-mono text-sm">
                     <span className="text-primary">&gt;</span> {t.name}
                   </p>
-                  <p className="mt-1 text-muted-foreground">{t.description}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{t.description}</p>
                 </div>
               ))}
-              <p className="border-t pt-4 text-muted-foreground">
-                Add your own in <Code>agent/tools.ts</Code>. Save, and it shows up here.
+              <p className="border-t pt-3 text-sm text-muted-foreground">
+                Chat tools are read-only. Payouts happen only in the GM&apos;s end-of-day loop, behind hard limits in code.
               </p>
             </CardContent>
           </Card>
@@ -282,6 +299,43 @@ export default function Home() {
           </CardFooter>
         </Card>
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <Card>
+          <CardHeader>
+            <SectionTitle num="04" title="Decision log — what the GM saw, decided, and why" />
+          </CardHeader>
+          <CardContent>
+            <DecisionLogList decisions={game?.decisions ?? []} />
+          </CardContent>
+        </Card>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <SectionTitle num="05" title="Leaderboard" />
+            </CardHeader>
+            <CardContent>
+              <Leaderboard rows={game?.leaderboard ?? []} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <SectionTitle num="06" title="Past puzzles" />
+            </CardHeader>
+            <CardContent>
+              <PastChallenges rows={game?.pastChallenges ?? []} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <SectionTitle num="07" title="Operator" />
+            </CardHeader>
+            <CardContent>
+              <AdminPanel onDone={loadChallenge} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </main>
   );
 }
@@ -359,7 +413,7 @@ function WalletDetails({ wallet, onRefresh }: { wallet: WalletInfo; onRefresh: (
           Get test ETH <ExternalLink className="size-3" />
         </a>
       </div>
-      <p className="text-xs text-muted-foreground">Base Sepolia testnet. Saved in .agent-wallet.json.</p>
+      <p className="text-xs text-muted-foreground">Base Sepolia testnet. Key from WALLET_PRIVATE_KEY or .agent-wallet.json.</p>
     </div>
   );
 }

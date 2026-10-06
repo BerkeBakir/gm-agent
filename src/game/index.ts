@@ -8,9 +8,9 @@ const globalForStore = globalThis as unknown as { gameStore?: GameStore };
  * Cached on globalThis so Next.js hot reloads don't wipe the memory store.
  */
 export function getGameStore(): GameStore {
-  globalForStore.gameStore ??= process.env.DATABASE_URL
-    ? new PostgresGameStore(process.env.DATABASE_URL)
-    : new MemoryGameStore();
+  const forceMemory = process.env.GAME_STORE === "memory";
+  globalForStore.gameStore ??=
+    process.env.DATABASE_URL && !forceMemory ? new PostgresGameStore(process.env.DATABASE_URL) : new MemoryGameStore();
   return globalForStore.gameStore;
 }
 
