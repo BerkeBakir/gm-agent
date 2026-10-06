@@ -24,10 +24,16 @@ const chain = createPublicClient({ chain: baseSepolia, transport: http() });
 
 export type Payment = { from: Address; to: Address; amount: string; asset: string; resource: string; nonce: string };
 
+/** The agent's private key from .env or .agent-wallet.json, or null if none was created yet. */
+export function getAgentPrivateKey(): Hex | null {
+  const key = process.env.WALLET_PRIVATE_KEY || (fs.existsSync(WALLET_FILE) && JSON.parse(fs.readFileSync(WALLET_FILE, "utf8")).privateKey);
+  return key ? (key as Hex) : null;
+}
+
 /** The wallet from .env or .agent-wallet.json, or null if none was created yet. */
 function loadAccount() {
-  const key = process.env.WALLET_PRIVATE_KEY || (fs.existsSync(WALLET_FILE) && JSON.parse(fs.readFileSync(WALLET_FILE, "utf8")).privateKey);
-  return key ? privateKeyToAccount(key as Hex) : null;
+  const key = getAgentPrivateKey();
+  return key ? privateKeyToAccount(key) : null;
 }
 
 function requireAccount() {

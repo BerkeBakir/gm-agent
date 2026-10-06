@@ -16,4 +16,4 @@ export function getGameStore(): GameStore {
 
 export * from "./answers";
 export * from "./types";
-export type { GameStore } from "./store";
+export { DuplicateSubmissionError, type GameStore } from "./store";
