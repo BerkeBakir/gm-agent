@@ -20,6 +20,51 @@ export interface Challenge extends NewChallenge {
 
 export type PublicChallenge = Omit<Challenge, "answer" | "acceptedAnswers">;
 
+/** All money amounts are USDC base units (6 decimals). */
+export interface NewSubmission {
+  challengeId: string;
+  player: `0x${string}`;
+  answer: string;
+  correct: boolean;
+  /** Entry fee paid via x402 (0n in free mode / simulations without fees). */
+  fee: bigint;
+  /** On-chain settlement tx of the entry fee, if any. */
+  feeTx?: string;
+}
+
+export interface Submission extends NewSubmission {
+  id: string;
+  /** Reward paid to this player for this challenge, set by the GM at day end. */
+  reward?: bigint;
+  rewardTx?: string;
+  createdAt: string;
+}
+
+/** One entry of the GM's decision log: what it saw, what it decided, and why. */
+export interface DecisionLog {
+  id: string;
+  day: number;
+  challengeId: string | null;
+  treasuryBefore: bigint;
+  treasuryAfter: bigint;
+  participants: number;
+  winners: number;
+  winRate: number | null;
+  income: bigint;
+  rewardPerWinner: bigint;
+  totalPaid: bigint;
+  nextDifficulty: Difficulty;
+  /** Who made the call: "gemini", or a rule-based strategy name in simulations. */
+  decidedBy: string;
+  reasoning: string;
+  /** Guardrail adjustments applied on top of the LLM's proposal, if any. */
+  adjustments: string[];
+  payouts: { player: string; amount: bigint; txHash?: string; error?: string }[];
+  createdAt: string;
+}
+
+export type NewDecisionLog = Omit<DecisionLog, "id" | "createdAt">;
+
 export function toPublicChallenge({ answer: _a, acceptedAnswers: _b, ...pub }: Challenge): PublicChallenge {
   return pub;
 }
