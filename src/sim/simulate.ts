@@ -66,6 +66,8 @@ export interface SimResult {
     daysInTargetBand: number;
     guardrailInterventions: number;
     difficultySwitches: number;
+    /** Days where the decider failed and the rule-based fallback decided instead. Must be 0 for a valid LLM run. */
+    fallbacks: number;
   };
 }
 
@@ -171,7 +173,8 @@ export async function simulate(
       totalPaid: days.reduce((s, x) => s + x.paid, 0),
       totalIncome: days.reduce((s, x) => s + x.income, 0),
       daysInTargetBand: days.filter((x) => x.winRate !== null && x.winRate >= 0.3 && x.winRate <= 0.5).length,
-      guardrailInterventions: days.filter((x) => x.adjustments.length > 0).length,
+      guardrailInterventions: days.filter((x) => x.adjustments.some((a) => !/ failed \(/.test(a))).length,
+      fallbacks: days.filter((x) => x.adjustments.some((a) => / failed \(/.test(a))).length,
       difficultySwitches: days.filter((x, i) => i > 0 && x.difficulty !== days[i - 1]!.difficulty).length,
     },
   };

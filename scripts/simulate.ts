@@ -29,7 +29,15 @@ const runs: Run[] = STRATEGIES.map((s) => ({ make: () => new RuleBasedDecisionMa
 runs.push({ make: () => new RuleBasedDecisionMaker("generous"), label: "rule:generous-no-cap", cfg: { maxDailyFractionBps: 10_000, maxPerTx: 1_000_000_000n } });
 if (withLlm) {
   if (!process.env.GEMINI_API_KEY) throw new Error("--llm needs GEMINI_API_KEY");
-  for (const p of ["balanced", "treasurer", "entertainer"] as Persona[]) runs.push({ make: () => new GeminiDecisionMaker(p) });
+  // Space out calls to stay under the free tier's requests-per-minute limit.
+  const throttled = (inner: DecisionMaker): DecisionMaker => ({
+    name: inner.name,
+    decide: async (s) => {
+      await new Promise((r) => setTimeout(r, Number(process.env.LLM_DELAY_MS ?? 4000)));
+      return inner.decide(s);
+    },
+  });
+  for (const p of ["balanced", "treasurer", "entertainer"] as Persona[]) runs.push({ make: () => throttled(new GeminiDecisionMaker(p)) });
 }
 
 const results: { name: string; perSeed: SimResult[] }[] = [];
@@ -64,6 +72,7 @@ const table = results.map(({ name, perSeed }) => {
     daysInTargetBand: mean(s.map((x) => x.daysInTargetBand)),
     guardrailInterventions: mean(s.map((x) => x.guardrailInterventions)),
     difficultySwitches: mean(s.map((x) => x.difficultySwitches)),
+    fallbacks: mean(s.map((x) => x.fallbacks)),
   };
 });
 
@@ -108,5 +117,6 @@ console.table(
     income: t.totalIncome.toFixed(2),
     "days in 30-50% band": t.daysInTargetBand.toFixed(1),
     "difficulty switches": t.difficultySwitches.toFixed(1),
+    "LLM fallbacks": t.fallbacks.toFixed(0),
   })),
 );

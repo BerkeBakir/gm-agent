@@ -14,6 +14,8 @@ questions: it runs a small economy, inside hard limits enforced in code.
 ## What it does
 
 - 🧩 **Writes puzzles** — Gemini authors an original riddle; the answer key is stored privately at creation.
+  A second, independent Gemini call solves each draft *blind*; if it can't reach the same answer, the
+  puzzle is treated as ambiguous and rewritten.
 - 💸 **Charges entry fees with x402** — `POST /api/submit` answers `402 Payment Required`; the player
   signs a gasless EIP-3009 USDC authorization; the server **settles it on-chain** into the treasury.
 - ✅ **Grades deterministically** — answers are normalized and compared to the stored key, so the LLM
@@ -156,6 +158,7 @@ or `curl -X POST -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/gm/r
 |---|---|
 | `GEMINI_API_KEY` | LLM for chat, decisions and puzzles (without it, rule-based fallback + puzzle bank) |
 | `GEMINI_MODEL` | Default `gemini-flash-latest` |
+| `GEMINI_FALLBACK_MODELS` | Tried in order on 503/429/network errors. Default `gemini-2.5-flash,gemini-flash-lite-latest` |
 | `WALLET_PRIVATE_KEY` | Agent treasury key (testnet only). Required on Vercel. |
 | `DATABASE_URL` | Neon Postgres (auto-set by the Vercel Neon integration) |
 | `CRON_SECRET` | Protects `/api/gm/run-day` (Vercel Cron sends it automatically) |

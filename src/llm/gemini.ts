@@ -10,7 +10,10 @@ export function modelChain(): string[] {
   return [...new Set([primary, ...fallbacks])];
 }
 
-const retryable = (err: unknown) => /\b(503|429|500)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|overloaded|high demand/i.test(String((err as Error)?.message ?? err));
+const retryable = (err: unknown) =>
+  /\b(503|429|500|502|504)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|overloaded|high demand|fetch failed|ECONNRESET|ETIMEDOUT|socket|network/i.test(
+    `${(err as Error)?.message ?? err} ${String((err as { cause?: unknown })?.cause ?? "")}`,
+  );
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -30,7 +33,7 @@ export async function generateWithFallback(
       } catch (err) {
         lastErr = err;
         if (!retryable(err)) throw err;
-        await sleep(600 * (attempt + 1));
+        await sleep(1500 * (attempt + 1));
       }
     }
   }
