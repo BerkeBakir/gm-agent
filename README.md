@@ -1,17 +1,107 @@
-# GM Agent — an AI game master with its own treasury
+<p align="center">
+  <img src="public/gm-agent-logo.svg" alt="GM Agent logo" width="128" height="128" />
+</p>
 
-**Live:** https://gm-agent-lime.vercel.app · **Network:** Base Sepolia (testnet) · Built for **Agentmaxxing** (Rise In, Oct 2026)
+<h1 align="center">GM Agent</h1>
+
+<p align="center">
+  <b>An autonomous AI game master that runs a daily puzzle game and manages its own on-chain treasury.</b><br/>
+  <a href="https://gm-agent-lime.vercel.app">Live app</a> ·
+  Base Sepolia (testnet) ·
+  Built for <b>Agentmaxxing</b> by <a href="https://x.com/riseinweb3">@riseinweb3</a> (Oct 2026)
+</p>
+
+---
+
+## Project description
 
 GM Agent is an autonomous AI game master. Every day it publishes an original puzzle, players
 pay a small **USDC entry fee via x402** to answer, and at the end of the day the agent grades the
 answers, **decides how much to pay the winners**, sends the rewards **on-chain from its own
 wallet**, tunes tomorrow's difficulty and writes down **why** — with no human operator.
 
-The interesting part is the economics. If the GM is too generous, the treasury drains and the
-game dies. If it is too stingy, players leave and income dries up. So the agent doesn't just answer
-questions: it runs a small economy, inside hard limits enforced in code.
+It is built on top of the default Agentmaxxing starter kit (Next.js + Gemini + viem), extended
+with real x402 settlement, a Postgres-backed game store, an autonomous daily loop and hard
+spending guardrails.
 
-## What it does
+## The problem it solves
+
+Online communities love daily puzzles and prize games, but running one is a chore: someone has to
+write fresh puzzles every day, collect entry fees, check answers, decide prize sizes and pay
+winners — and do it fairly and without going broke. Prize pools are usually managed by hand,
+opaquely, and die when the organizer loses interest.
+
+GM Agent hands that whole job to an AI agent **that holds its own money**:
+
+- **No operator needed** — puzzles, grading, payouts and difficulty tuning happen on a daily cron.
+- **Sustainable economics** — too generous and the treasury drains; too stingy and players leave.
+  The agent balances income vs. rewards every day, and code-level guardrails make bankruptcy
+  impossible (see [Experiments](#experiments)).
+- **Transparent and trustless** — every fee and payout is a public USDC transaction, and every
+  decision is logged with the agent's own written reasoning.
+- **Micro-payments that actually work** — x402 + EIP-3009 lets players pay a 0.10 USDC fee with a
+  single gasless signature, no account or approval step.
+
+## Tech stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| Runtime | Node.js | ≥ 22 |
+| Framework | Next.js (App Router) | 16.3.8 |
+| UI | React / React DOM | 19.3.0 |
+| Styling | Tailwind CSS (+ `@tailwindcss/postcss`) | 4.3.3 |
+| Components | shadcn · Base UI · lucide-react | 4.21.1 · 1.8.0 · 1.52.0 |
+| Language | TypeScript | 5.9.3 |
+| LLM SDK | `@google/genai` (Google Gemini) | 2.27.0 |
+| Blockchain | viem | 2.57.2 |
+| Network / token | Base Sepolia testnet · Circle USDC (EIP-3009) | chain id 84532 |
+| Payments | x402 protocol, `exact` scheme | v1 |
+| Database | Neon Postgres (`@neondatabase/serverless`) | 1.2.0 |
+| Hosting / cron | Vercel (+ Vercel Cron) | — |
+| Testing | Vitest · tsx | 5.0.3 · 4.23.15 |
+
+## Tools
+
+The chat agent ([`agent/tools.ts`](agent/tools.ts)) has **5 built-in tools** that Gemini calls via
+function calling:
+
+| # | Tool | What it does |
+|---|---|---|
+| 1 | `create_challenge` | Publishes a new original puzzle (difficulty, question, private answer key, accepted variants). Only allowed when no day is open. |
+| 2 | `get_today_challenge` | Returns the currently open puzzle — never the answer key. |
+| 3 | `get_treasury_balance` | Reads the agent wallet's USDC and ETH balance on Base Sepolia, with a BaseScan link. |
+| 4 | `get_decision_log` | Reads the GM's own decision log: participants, win rate, income, payouts, treasury before/after and written reasoning. |
+| 5 | `get_game_rules` | Returns the rules and economic limits: entry fee, max reward per winner, daily payout budget. |
+
+Chat tools are **read-only with respect to money**. On top of them, the autonomous daily loop
+([`src/gm/run-day.ts`](src/gm/run-day.ts)) performs these actions:
+
+| Action | What it does |
+|---|---|
+| Decide rewards & difficulty | Gemini proposes reward per winner + next difficulty with reasoning (3 personas). |
+| Apply guardrails | `SpendingGuard` clamps every proposal to per-tx and daily caps. |
+| Pay winners | Real USDC transfers on Base Sepolia from the agent wallet. |
+| Author next puzzle | Gemini writes a puzzle; a second, blind Gemini call must solve it or it is rewritten. |
+| Settle entry fees | x402 paywall on `/api/submit` settles EIP-3009 authorizations on-chain. |
+
+## Supported AI models
+
+GM Agent runs on **Google Gemini** through `@google/genai` 2.27.0, with automatic model fallback
+([`src/llm/gemini.ts`](src/llm/gemini.ts)): on 503 / 429 / network errors each model gets 2
+attempts, then the next model in the chain is tried. The model is switchable via env vars.
+
+| Role | Model | Version / alias |
+|---|---|---|
+| Primary (`GEMINI_MODEL`) | Gemini Flash | `gemini-flash-latest` (latest stable Flash) |
+| Fallback 1 | Gemini 2.5 Flash | `gemini-2.5-flash` |
+| Fallback 2 | Gemini Flash-Lite | `gemini-flash-lite-latest` |
+| No API key / all models down | Rule-based strategy + built-in puzzle bank | — |
+
+Any other Gemini model id can be set via `GEMINI_MODEL` / `GEMINI_FALLBACK_MODELS`.
+The economic decision maker also supports three personas (`GM_PERSONA`): `balanced`,
+`treasurer`, `entertainer`.
+
+## Key features
 
 - 🧩 **Writes puzzles** — Gemini authors an original riddle; the answer key is stored privately at creation.
   A second, independent Gemini call solves each draft *blind*; if it can't reach the same answer, the
@@ -28,6 +118,44 @@ questions: it runs a small economy, inside hard limits enforced in code.
 - 📒 **Keeps a public decision log** — what it saw, what it decided, what the guardrails changed, and why.
 - 💬 **Talks** — a chat where anyone can ask the GM about today's puzzle, the treasury, or why it paid
   what it paid. Chat tools are read-only; money only moves in the daily loop.
+- 🔁 **Resilient** — Gemini retries + model fallback, rule-based fallback when no LLM is available.
+- 🧪 **Tested & simulated** — unit tests for every money path and a 30-day economy simulator.
+
+## Demo video
+
+▶️ **Week 1 demo:** _coming soon — link will be added here_ <!-- TODO: replace with the YouTube / Loom link -->
+
+## Demo links
+
+- Week 1 (gmagent.v1): _demo-video-link_ <!-- TODO -->
+- Week 2 (gmagent.v2): _coming in Week 2_
+- Week 3 (gmagent.v3): _coming in Week 3_
+
+Live app: https://gm-agent-lime.vercel.app
+
+## Future scope
+
+**Week 2 (gmagent.v2)**
+- **Player agents over x402** — let other AI agents join the game by paying the entry fee
+  programmatically (an x402 client SDK + MCP server exposing `get_puzzle` / `submit_answer`).
+- **Model switching in the UI** — pick between Gemini models (and add Claude / OpenAI providers)
+  per role: chat, puzzle author, treasurer.
+- **Leaderboard & streaks** — per-wallet history, streak bonuses decided by the GM within the caps.
+- **Mainnet-ready treasury** — move the agent key to a smart account / KMS signer with on-chain
+  spending limits instead of an env var.
+
+**Week 3 (gmagent.v3)**
+- **ZK answer commitments** — publish a hash commitment of the answer key at puzzle creation and a
+  ZK proof at grading time, so players can verify the GM didn't change the answer after the fact.
+- **Sponsored prize pools** — anyone can top up the treasury via x402 and the GM accounts for it.
+- **Multiple game modes** — trivia, word games and multi-day tournaments run by the same agent.
+- **Onchain decision log** — anchor each day's decision hash on Base for tamper-evident accounting.
+
+## Social media
+
+- X / Twitter: _product page coming soon_ <!-- TODO: add the product X handle, e.g. [@yourhandle](https://x.com/yourhandle) -->
+- Built for Agentmaxxing by [@riseinweb3](https://x.com/riseinweb3)
+- GitHub: [BerkeBakir/gm-agent](https://github.com/BerkeBakir/gm-agent)
 
 ## Architecture
 
@@ -131,7 +259,7 @@ fixed with hysteresis.
 
 ## Run it locally
 
-Requirements: Node 20+, a free [Gemini API key](https://aistudio.google.com/apikey).
+Requirements: Node 22+, a free [Gemini API key](https://aistudio.google.com/apikey).
 
 ```bash
 git clone https://github.com/BerkeBakir/gm-agent && cd gm-agent
