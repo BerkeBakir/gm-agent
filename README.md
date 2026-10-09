@@ -124,11 +124,13 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
 
 ## Demo video
 
-▶️ **Week 1 demo:** _coming soon — link will be added here_ <!-- TODO: replace with the YouTube / Loom link -->
+[![GM Agent v1 demo](https://img.youtube.com/vi/1hf2Hj-q76E/maxresdefault.jpg)](https://youtu.be/1hf2Hj-q76E)
+
+▶️ **Week 1 demo:** https://youtu.be/1hf2Hj-q76E
 
 ## Demo links
 
-- Week 1 (gmagent.v1): _demo-video-link_ <!-- TODO -->
+- Week 1 (gmagent.v1): https://youtu.be/1hf2Hj-q76E
 - Week 2 (gmagent.v2): _coming in Week 2_
 - Week 3 (gmagent.v3): _coming in Week 3_
 
