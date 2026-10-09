@@ -124,7 +124,7 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
 
 ## Demo video
 
-[![GM Agent v1 demo](https://img.youtube.com/vi/1hf2Hj-q76E/maxresdefault.jpg)](https://youtu.be/1hf2Hj-q76E)
+[![GM Agent v1 demo](https://img.youtube.com/vi/1hf2Hj-q76E/hqdefault.jpg)](https://youtu.be/1hf2Hj-q76E)
 
 ▶️ **Week 1 demo:** https://youtu.be/1hf2Hj-q76E
 
