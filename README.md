@@ -7,6 +7,7 @@
 <p align="center">
   <b>An autonomous AI game master that runs a daily puzzle game and manages its own on-chain treasury.</b><br/>
   <a href="https://gm-agent-lime.vercel.app">Live app</a> ·
+  <a href="https://x.com/GMAgentHQ">@GMAgentHQ</a> ·
   Base Sepolia (testnet) ·
   Built for <b>Agentmaxxing</b> by <a href="https://x.com/riseinweb3">@riseinweb3</a> (Oct 2026)
 </p>
@@ -153,7 +154,7 @@ Live app: https://gm-agent-lime.vercel.app
 
 ## Social media
 
-- X / Twitter: _product page coming soon_ <!-- TODO: add the product X handle, e.g. [@yourhandle](https://x.com/yourhandle) -->
+- X / Twitter: [@GMAgentHQ](https://x.com/GMAgentHQ)
 - Built for Agentmaxxing by [@riseinweb3](https://x.com/riseinweb3)
 - GitHub: [BerkeBakir/gm-agent](https://github.com/BerkeBakir/gm-agent)
 

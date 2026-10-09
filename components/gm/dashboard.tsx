@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ExternalLink, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -140,7 +140,11 @@ export function PastChallenges({ rows }: { rows: GameStateResponse["pastChalleng
 
 /** Lets the operator close the day on demand (same endpoint the daily cron calls). */
 export function AdminPanel({ onDone }: { onDone: () => void }) {
-  const [token, setToken] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("gm-admin-token") ?? "" : ""));
+  const [token, setToken] = useState("");
+  // Read the saved token after mount so the server and client render the same HTML (no hydration mismatch).
+  useEffect(() => {
+    setToken(localStorage.getItem("gm-admin-token") ?? "");
+  }, []);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
