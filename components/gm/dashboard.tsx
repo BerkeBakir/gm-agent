@@ -47,7 +47,7 @@ export function DecisionLogList({ decisions }: { decisions: Decision[] }) {
       {decisions.map((d) => (
         <article key={d.id} className="border p-4">
           <header className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase">
-            <span className="font-bold text-primary">{d.day === 0 ? "Game start" : `Day ${d.day} closed`}</span>
+            <span className="font-bold text-primary">{d.day === 0 ? (d.decidedBy === "recovery" ? "Game reopened" : "Game start") : `Day ${d.day} closed`}</span>
             <Badge variant="outline" className="font-mono uppercase">by {d.decidedBy}</Badge>
             <span className="ml-auto text-muted-foreground">{new Date(d.createdAt).toLocaleString()}</span>
           </header>

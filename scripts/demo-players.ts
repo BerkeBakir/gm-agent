@@ -15,7 +15,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { createBaseSepoliaClient, EXPLORER_URL, getUsdcBalance } from "../src/chain/base-sepolia";
 import { BaseSepoliaWallet } from "../src/wallet/base-sepolia";
 import { formatUsdc, parseUsdc } from "../src/wallet/usdc";
-import { createPaymentHeader, type PaymentRequirements } from "../src/x402/exact";
+import { payAndSubmit } from "../src/x402/client";
 
 for (const file of [".env", ".env.local"]) {
   if (!existsSync(file)) continue;
@@ -56,20 +56,8 @@ for (const [i, answer] of answers.entries()) {
     await new Promise((r) => setTimeout(r, 3000));
   }
 
-  const first = await fetch(`${URL_BASE}/api/submit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ answer }) });
-  if (first.status !== 402) {
-    console.log(`bot${i + 1}: unexpected ${first.status}`, await first.text());
-    continue;
-  }
-  const { accepts } = (await first.json()) as { accepts: PaymentRequirements[] };
-  const header = await createPaymentHeader(bot, accepts[0]!);
-  const paid = await fetch(`${URL_BASE}/api/submit`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "X-PAYMENT": header },
-    body: JSON.stringify({ answer }),
-  });
-  const body = (await paid.json()) as { feeTx?: string; error?: string };
-  console.log(`bot${i + 1} answered "${answer}" → ${paid.status}`, body.feeTx ? `fee settled ${EXPLORER_URL}/tx/${body.feeTx}` : body.error);
+  const r = await payAndSubmit(URL_BASE, bot, answer, { maxFee: parseUsdc("1") });
+  console.log(`bot${i + 1} answered "${answer}" → ${r.status}`, r.ok ? `fee settled ${EXPLORER_URL}/tx/${r.feeTx}` : r.error);
 }
 
 if (process.argv.includes("--close")) {

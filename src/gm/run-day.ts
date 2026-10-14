@@ -15,6 +15,25 @@ export interface RunDayDeps {
   limits: SpendingLimits;
   entryFee: bigint;
   targetWinRate?: { min: number; max: number };
+  /** Enforce difficulty hysteresis in code (default true). */
+  hysteresis?: boolean;
+  /**
+   * Time budget per LLM step. The whole run must finish inside the 300 s serverless limit,
+   * otherwise the day is claimed but never reopened. On timeout the rule-based decider /
+   * puzzle bank takes over, exactly like on an error.
+   */
+  timeouts?: { decideMs?: number; authorMs?: number };
+}
+
+/** Rejects if `promise` doesn't settle within `ms` (the promise itself keeps running). */
+export function withTimeout<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${what} timed out after ${Math.round(ms / 1000)}s`)), ms);
+    }),
+  ]);
 }
 
 export interface DayReport {
@@ -23,6 +42,7 @@ export interface DayReport {
 }
 
 const DEFAULT_TARGET = { min: 0.3, max: 0.5 };
+const DEFAULT_TIMEOUTS = { decideMs: 90_000, authorMs: 120_000 };
 
 /** Collects everything the GM needs to decide how to close the current day. */
 export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
@@ -80,6 +100,7 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
   const { store, wallet } = deps;
   const state = await buildGameState(deps);
   const notes: string[] = [];
+  const timeouts = { ...DEFAULT_TIMEOUTS, ...deps.timeouts };
 
   // Claim the day atomically, so a cron run and a manual run can never both pay the same winners.
   if (state.challenge && !(await store.closeChallenge(state.challenge.id))) {
@@ -88,12 +109,21 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
 
   let decidedBy = deps.decider.name;
   let proposal: Decision;
-  if (!state.challenge) {
+  if (!state.challenge && state.history.length > 0) {
+    // A previous run claimed the day but died before opening the next one: reopen the game.
+    decidedBy = "recovery";
+    const last = state.history[0]!;
+    proposal = {
+      rewardPerWinner: 0n,
+      nextDifficulty: last.nextDifficulty,
+      reasoning: `No puzzle was open (the previous day-close did not finish). Reopening the game at ${last.nextDifficulty}, the difficulty decided on day ${last.day}.`,
+    };
+  } else if (!state.challenge) {
     decidedBy = "bootstrap";
     proposal = { rewardPerWinner: 0n, nextDifficulty: "easy", reasoning: "Game starts: opening day 1 with an easy puzzle to attract players." };
   } else {
     try {
-      proposal = await deps.decider.decide(state);
+      proposal = await withTimeout(deps.decider.decide(state), timeouts.decideMs, deps.decider.name);
     } catch (err) {
       const fallback = new RuleBasedDecisionMaker("adaptive");
       notes.push(`${deps.decider.name} failed (${err instanceof Error ? err.message : String(err)}); used ${fallback.name}`);
@@ -102,7 +132,7 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
     }
   }
 
-  const decision = applyGuardrails(proposal, state);
+  const decision = applyGuardrails(proposal, state, { hysteresis: deps.hysteresis });
 
   // Pay winners. Every transfer goes through the SpendingGuard (per-tx + daily limits).
   const payouts: DecisionLog["payouts"] = [];
@@ -124,7 +154,9 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
   // Publish the next challenge.
   let next;
   try {
-    next = validateNewChallenge(await deps.author.author(decision.nextDifficulty, state.recentQuestions));
+    next = validateNewChallenge(
+      await withTimeout(deps.author.author(decision.nextDifficulty, state.recentQuestions), timeouts.authorMs, "challenge author"),
+    );
   } catch (err) {
     notes.push(`challenge author failed (${err instanceof Error ? err.message : String(err)}); used puzzle bank`);
     next = await new StaticChallengeAuthor().author(decision.nextDifficulty, state.recentQuestions);

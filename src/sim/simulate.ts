@@ -25,6 +25,8 @@ export interface SimConfig {
   maxPerTx: bigint;
   maxDailyFractionBps: number;
   seed: number;
+  /** Enforce difficulty hysteresis in code (production default). Off reproduces the pre-v2 experiments. */
+  hysteresis: boolean;
 }
 
 export const DEFAULT_SIM: SimConfig = {
@@ -35,6 +37,7 @@ export const DEFAULT_SIM: SimConfig = {
   maxPerTx: 2_000_000n, // 2 USDC
   maxDailyFractionBps: 1_000, // 10%
   seed: 1,
+  hysteresis: true,
 };
 
 export interface DayMetrics {
@@ -102,6 +105,7 @@ export async function simulate(
     author,
     limits: { maxPerTx: cfg.maxPerTx, maxDailyFractionBps: cfg.maxDailyFractionBps },
     entryFee: cfg.entryFee,
+    hysteresis: cfg.hysteresis,
   };
 
   const bots = Array.from({ length: cfg.players }, (_, i) => ({

@@ -56,6 +56,76 @@ describe("applyGuardrails", () => {
   });
 });
 
+describe("difficulty hysteresis", () => {
+  const challenge = (difficulty: "easy" | "medium" | "hard") =>
+    ({ id: "c1", day: 3, difficulty, question: "q", answer: "a", hint: null, createdAt: new Date(), closedAt: null }) as never;
+  const today = (winRate: number | null) => ({ participants: 10, winners: Math.round((winRate ?? 0) * 10), winRate, income: 1_000_000n });
+  const yesterday = (winRate: number | null) => [
+    { day: 2, participants: 10, winners: 0, winRate, income: 0n, totalPaid: 0n, treasuryAfter: 0n, nextDifficulty: "medium" as const },
+  ];
+  const decide = (proposed: "easy" | "medium" | "hard", s: Partial<GameState>) =>
+    applyGuardrails({ rewardPerWinner: 100_000n, nextDifficulty: proposed, reasoning: "" }, state(s));
+
+  it("blocks a change when today's win rate is inside the band", () => {
+    const r = decide("hard", { challenge: challenge("medium"), today: today(0.45) });
+    expect(r.nextDifficulty).toBe("medium");
+    expect(r.adjustments.join()).toMatch(/hysteresis.*inside the target band/);
+  });
+
+  it("blocks a change on one slightly-out day", () => {
+    const r = decide("hard", { challenge: challenge("medium"), today: today(0.6), history: yesterday(0.4) });
+    expect(r.nextDifficulty).toBe("medium");
+    expect(r.adjustments.join()).toMatch(/second day/);
+  });
+
+  it("allows a change when far outside the band", () => {
+    const r = decide("hard", { challenge: challenge("medium"), today: today(0.8), history: yesterday(0.4) });
+    expect(r.nextDifficulty).toBe("hard");
+    expect(r.adjustments).toEqual([]);
+  });
+
+  it("allows a change when outside on the same side two days in a row", () => {
+    const r = decide("easy", { challenge: challenge("medium"), today: today(0.25), history: yesterday(0.2) });
+    expect(r.nextDifficulty).toBe("easy");
+  });
+
+  it("does not count yesterday on the other side as persistent", () => {
+    const r = decide("hard", { challenge: challenge("medium"), today: today(0.6), history: yesterday(0.2) });
+    expect(r.nextDifficulty).toBe("medium");
+  });
+
+  it("blocks a move in the wrong direction", () => {
+    const r = decide("easy", { challenge: challenge("medium"), today: today(0.9) });
+    expect(r.nextDifficulty).toBe("medium");
+    expect(r.adjustments.join()).toMatch(/only go up/);
+  });
+
+  it("limits a jump to one step", () => {
+    const r = decide("hard", { challenge: challenge("easy"), today: today(0.95) });
+    expect(r.nextDifficulty).toBe("medium");
+    expect(r.adjustments.join()).toMatch(/one step/);
+  });
+
+  it("keeps difficulty when nobody played", () => {
+    const r = decide("easy", { challenge: challenge("hard"), today: { participants: 0, winners: 0, winRate: null, income: 0n } });
+    expect(r.nextDifficulty).toBe("hard");
+  });
+
+  it("leaves unchanged proposals and the opening day alone", () => {
+    expect(decide("medium", { challenge: challenge("medium"), today: today(0.9) }).adjustments).toEqual([]);
+    expect(decide("easy", { challenge: null }).nextDifficulty).toBe("easy");
+  });
+
+  it("can be switched off to reproduce pre-v2 experiments", () => {
+    const r = applyGuardrails(
+      { rewardPerWinner: 100_000n, nextDifficulty: "hard", reasoning: "" },
+      state({ challenge: challenge("medium"), today: today(0.45) }),
+      { hysteresis: false },
+    );
+    expect(r.nextDifficulty).toBe("hard");
+  });
+});
+
 describe("nextDifficultyForWinRate", () => {
   const target = { min: 0.3, max: 0.5 };
   it("makes it harder when too many win", () => {
