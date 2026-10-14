@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1600px;height:900px;overflow:hidden;background:#0B0B14;color:#fff;
+ font-family:"Segoe UI","Segoe UI Emoji",system-ui,sans-serif;position:relative}
+.glow1{position:absolute;left:-300px;top:-380px;width:1100px;height:900px;border-radius:50%;
+ background:radial-gradient(closest-side,rgba(132,39,253,.75),rgba(132,39,253,0));}
+.glow2{position:absolute;right:-300px;bottom:-420px;width:1100px;height:900px;border-radius:50%;
+ background:radial-gradient(closest-side,rgba(65,218,190,.45),rgba(65,218,190,0));}
+.wrap{position:absolute;inset:0;padding:78px 90px}
+.pill{display:inline-block;border:2px solid #41DABE;color:#41DABE;border-radius:40px;
+ padding:8px 24px;font-size:26px;letter-spacing:3px;font-weight:600}
+h1{font-size:84px;line-height:1.02;font-weight:800;margin-top:30px;letter-spacing:-1px}
+.lime{color:#B8F51C}
+.card{background:rgba(22,22,36,.92);border:2px solid #26263a;border-radius:26px}
+.mono{font-family:"Cascadia Mono","Consolas",monospace}
+.foot{position:absolute;left:90px;bottom:58px;display:flex;align-items:center;gap:18px;
+ font-size:30px;color:#a9a9bd}
+.foot img{width:54px;height:54px;border-radius:12px}
+.muted{color:#a9a9bd}
+</style></head><body><div class="glow1"></div><div class="glow2"></div><div class="wrap">
+<span class="pill">GM AGENT v2 · WEEK 2</span>
+<h1>The LLM proposes.<br><span class="lime">The code enforces.</span></h1>
+<div style="display:flex;gap:36px;margin-top:52px">
+  <div class="card" style="flex:1.05;padding:34px 40px">
+    <div class="muted" style="font-size:26px">Difficulty switches in 30 simulated days (Gemini)</div>
+    <div style="display:flex;align-items:flex-end;gap:40px;margin-top:22px">
+      <div><div style="font-size:120px;font-weight:800;line-height:1;color:#8a8aa3">23</div>
+           <div class="muted" style="font-size:24px;margin-top:8px">rule in the prompt</div></div>
+      <div style="font-size:70px;color:#41DABE;padding-bottom:40px">→</div>
+      <div><div class="lime" style="font-size:120px;font-weight:800;line-height:1">9</div>
+           <div style="font-size:24px;margin-top:8px;color:#d9ffa0">rule in the code</div></div>
+    </div>
+  </div>
+  <div class="card" style="flex:1;padding:34px 36px">
+    <div class="muted" style="font-size:26px">From the public decision log</div>
+    <div class="mono" style="font-size:25px;line-height:1.45;margin-top:18px;color:#e8e8f0">
+      Gemini: <span class="lime">medium → hard</span><br>
+      win rate <b>40%</b> · target band 30–50%<br>
+      <span style="color:#ff7a8a">✕ blocked (hysteresis)</span><br>
+      <span class="muted">inside the band, keep medium</span>
+    </div>
+  </div>
+</div></div>
+<div class="foot"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTYwIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkdNIEFnZW50IGxvZ28iPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM4NDI3RkQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNDFEQUJFIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCIgcng9IjM2IiBmaWxsPSJ1cmwoI2JnKSIvPgogIDwhLS0gZGllIGZhY2U6IHRoZSBnYW1lIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIzMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIyMiIgZmlsbD0iIzBCMEIxNCIgb3BhY2l0eT0iMC45Ii8+CiAgPGNpcmNsZSBjeD0iNTYiIGN5PSI1NiIgcj0iOSIgZmlsbD0iI0NDNDVGRiIvPgogIDxjaXJjbGUgY3g9IjEwNCIgY3k9IjU2IiByPSI5IiBmaWxsPSIjQ0M0NUZGIi8+CiAgPGNpcmNsZSBjeD0iNTYiIGN5PSIxMDQiIHI9IjkiIGZpbGw9IiNDQzQ1RkYiLz4KICA8IS0tIGNvaW46IHRoZSB0cmVhc3VyeSAtLT4KICA8Y2lyY2xlIGN4PSIxMDQiIGN5PSIxMDQiIHI9IjE3IiBmaWxsPSIjQjRGRjI0Ii8+CiAgPHRleHQgeD0iMTA0IiB5PSIxMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMEIwQjE0Ij4kPC90ZXh0PgogIDwhLS0gc3Bhcms6IHRoZSBBSSAtLT4KICA8cGF0aCBkPSJNODAgNjYgTDg0IDc2IEw5NCA4MCBMODQgODQgTDgwIDk0IEw3NiA4NCBMNjYgODAgTDc2IDc2IFoiIGZpbGw9IiNGRkZGRkYiLz4KPC9zdmc+Cg==">GM Agent v2 · gm-agent-lime.vercel.app · #Agentmaxxing</div>
+</body></html>
