@@ -11,6 +11,7 @@ next-env.d.ts
 !.env.example
 .agent-wallet.json
 .demo-players.json
+.mcp-player.json
 
 *.db
 *.db-journal

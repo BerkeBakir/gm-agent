@@ -127,11 +127,53 @@ noisy day*.
 Caveat: one seed per Gemini run (LLM calls are slow and rate-limited), so treat differences of a few
 USDC as noise; the v1→v2 treasurer gap and the unchanged switching are large enough to be meaningful.
 
-Production uses prompt v2 with the `balanced` persona.
+## Week 2 (v2): hysteresis enforced in code
+
+The week-1 takeaway turned into a guardrail. `applyDifficultyHysteresis()` in
+[`src/gm/policy.ts`](../src/gm/policy.ts) runs inside `applyGuardrails()`, next to the budget cap.
+Gemini still proposes the next difficulty, but a change only goes through if today's win rate is
+**more than 15 points outside** the 30–50% band, or **outside on the same side two days in a row**.
+Even then it moves only **one step**, and only in the direction that pulls the win rate back. Every
+blocked proposal is written to the public decision log as an adjustment, e.g.:
+
+> difficulty change medium→hard blocked (hysteresis): win rate 40% is inside the target band 30%-50%
+
+Same 30 days, same seed, prompt v2, now with the rule in code (`npm run simulate -- --llm`):
+
+| Gemini run (prompt v2) | Final treasury | Last-week players | Paid out | Days in band | Difficulty switches | Proposals blocked |
+|---|---:|---:|---:|---:|---:|---:|
+| balanced, week 1 (prompt only) | 26.60 | 23.0 | 89.70 | 8 | 23 | – |
+| **balanced + code hysteresis** | 27.84 | **23.3** | 92.86 | **10** | **9** | 5 |
+| treasurer, week 1 (prompt only) | 39.43 | 20.3 | 73.87 | 9 | 22 | – |
+| **treasurer + code hysteresis** | **44.65** | 20.3 | 68.65 | **12** | **9** | 12 |
+| entertainer, week 1 (prompt only) | 27.78 | 20.6 | 90.22 | 11 | 19 | – |
+| **entertainer + code hysteresis** | 27.07 | **22.6** | 92.53 | **12** | **9** | 14 |
+
+Rule-based check (5 seeds): the naive `adaptive` controller plus the code rule
+(`rule:adaptive+code-hysteresis`) lands where the hand-written `adaptive-v2` did: 11.0 switches
+instead of 22.8, 8.2 days in band instead of 6.6, same treasury (27.5 USDC). So the guardrail
+reproduces the fix without the strategy having to know about it. All baselines above are run with
+the rule switched off (`hysteresis: false`) so the week-1 numbers stay reproducible; the week-1 raw
+data is kept in [`docs/sim/results-week1.json`](sim/results-week1.json).
+
+**Findings**
+
+1. **Switching dropped from 19–23 to 9 for every persona**, with 0 fallbacks: every decision was still
+   made by Gemini, only inside the rule.
+2. **Time in the target band went up** (8–11 → 10–12 days) and nothing got worse economically. The
+   treasurer ended with its best result so far (44.65 USDC).
+3. **The log shows why it was needed.** The treasurer persona proposed medium→hard on days when the
+   win rate was 40% or 50%, i.e. *inside* the band; 12 of its 30 proposals were blocked (14 for the entertainer). Each
+   explanation looked reasonable on its own; the pattern across days did not.
+4. Same lesson as the spending cap, now confirmed twice: **let the LLM make the judgment call
+   (how generous, explained in words), and put every rule that must always hold in code.**
+
+Production uses prompt v2 with the `balanced` persona and the code-enforced hysteresis.
 
 ## Failures found along the way
 
 - **Adaptive oscillation** (above) — found by the simulator, fixed with hysteresis.
+- **Gemini ignored the "don't flip on one noisy day" prompt rule** — found by the simulator in week 1, fixed in week 2 by moving the rule into the guardrails.
 - **Over-paying is impossible by construction** — a test (`test/run-day.test.ts`) feeds a decider
   that asks for 50 USDC per winner; guardrails cap it at 2 USDC and log the adjustment.
 - **The agent can't misgrade its own riddle** — the answer key is stored when the puzzle is

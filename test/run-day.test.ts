@@ -88,4 +88,36 @@ describe("runDay", () => {
     const [log] = await store.listDecisions(1);
     expect(log?.totalPaid).toBe(0n);
   });
+
+  it("falls back when the LLM decider hangs, so the day still closes in time", async () => {
+    const hanging: DecisionMaker = { name: "gemini:slow", decide: () => new Promise(() => {}) };
+    const { store, deps } = setup(hanging);
+    await runDay(deps);
+    const report = await runDay({ ...deps, timeouts: { decideMs: 20 } });
+    expect(report.log.decidedBy).toBe("rule:adaptive");
+    expect(report.log.adjustments.join()).toMatch(/gemini:slow failed \(gemini:slow timed out/);
+    expect((await store.getCurrentChallenge())?.day).toBe(2);
+  });
+
+  it("uses the puzzle bank when the challenge author hangs", async () => {
+    const { store, deps } = setup();
+    await runDay(deps);
+    const report = await runDay({ ...deps, author: { author: () => new Promise(() => {}) }, timeouts: { authorMs: 20 } });
+    expect(report.log.adjustments.join()).toMatch(/challenge author timed out/);
+    expect((await store.getCurrentChallenge())?.day).toBe(2);
+  });
+
+  it("recovers when a previous run closed the day but never opened the next one", async () => {
+    const { store, deps } = setup();
+    await runDay(deps); // day 1
+    await runDay(deps); // day 1 closed, day 2 open
+    const day2 = (await store.getCurrentChallenge())!;
+    await store.closeChallenge(day2.id); // simulate a run that died after claiming day 2
+    expect(await store.getCurrentChallenge()).toBeNull();
+
+    const report = await runDay(deps);
+    expect(report.log.decidedBy).toBe("recovery");
+    expect(report.newChallenge.day).toBe(3);
+    expect((await store.getCurrentChallenge())?.day).toBe(3);
+  });
 });

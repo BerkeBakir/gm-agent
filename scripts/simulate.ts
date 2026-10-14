@@ -1,7 +1,8 @@
 // Compare reward strategies over a simulated 30-day game.
 // Usage:
 //   npm run simulate                 # rule-based strategies only (free, instant)
-//   npm run simulate -- --llm        # + Gemini personas (needs GEMINI_API_KEY; ~30 calls each)
+//   npm run simulate -- --llm        # + Gemini personas with code hysteresis (needs GEMINI_API_KEY; ~30 calls each)
+//   npm run simulate -- --llm-all    # + also the week-1 Gemini prompt v1/v2 runs (no code hysteresis)
 // Writes docs/sim/results.json, docs/sim/*.csv and docs/sim/*.svg.
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { GeminiDecisionMaker, type Persona } from "../src/gm/gemini";
@@ -24,10 +25,15 @@ const OUT = "docs/sim";
 mkdirSync(OUT, { recursive: true });
 
 type Run = { make: () => DecisionMaker; label?: string; cfg?: Partial<typeof DEFAULT_SIM> };
-const runs: Run[] = STRATEGIES.map((s) => ({ make: () => new RuleBasedDecisionMaker(s) }));
+// Baselines run WITHOUT the code-enforced hysteresis so they reproduce the pre-v2 experiments.
+const OFF = { hysteresis: false };
+const runs: Run[] = STRATEGIES.map((s) => ({ make: () => new RuleBasedDecisionMaker(s), cfg: OFF }));
 // Ablation: what the daily 10% cap is worth. Same generous strategy, cap lifted to 100%.
-runs.push({ make: () => new RuleBasedDecisionMaker("generous"), label: "rule:generous-no-cap", cfg: { maxDailyFractionBps: 10_000, maxPerTx: 1_000_000_000n } });
-if (withLlm) {
+runs.push({ make: () => new RuleBasedDecisionMaker("generous"), label: "rule:generous-no-cap", cfg: { ...OFF, maxDailyFractionBps: 10_000, maxPerTx: 1_000_000_000n } });
+// v2: naive adaptive controller, with hysteresis enforced by the guardrails instead of the strategy.
+runs.push({ make: () => new RuleBasedDecisionMaker("adaptive"), label: "rule:adaptive+code-hysteresis" });
+const llmAll = process.argv.includes("--llm-all");
+if (withLlm || llmAll) {
   if (!process.env.GEMINI_API_KEY) throw new Error("--llm needs GEMINI_API_KEY");
   // Space out calls to stay under the free tier's requests-per-minute limit.
   const throttled = (inner: DecisionMaker): DecisionMaker => ({
@@ -37,9 +43,15 @@ if (withLlm) {
       return inner.decide(s);
     },
   });
-  for (const version of [1, 2] as const) {
-    for (const p of ["balanced", "treasurer", "entertainer"] as Persona[]) runs.push({ make: () => throttled(new GeminiDecisionMaker(p, version)) });
+  const personas: Persona[] = ["balanced", "treasurer", "entertainer"];
+  // --llm-all: also re-run the week-1 prompt experiments (v1 and v2, no code hysteresis).
+  if (llmAll) {
+    for (const version of [1, 2] as const) {
+      for (const p of personas) runs.push({ make: () => throttled(new GeminiDecisionMaker(p, version)), cfg: OFF });
+    }
   }
+  // Week 2: prompt v2 + hysteresis enforced in code.
+  for (const p of personas) runs.push({ make: () => throttled(new GeminiDecisionMaker(p, 2)), label: `gemini:${p}+hysteresis` });
 }
 
 const results: { name: string; perSeed: SimResult[] }[] = [];
@@ -84,7 +96,7 @@ for (const { name, perSeed } of results) {
   const rows = perSeed[0]!.days.map((d) =>
     [d.day, d.difficulty, d.participants, d.winners, d.winRate?.toFixed(2) ?? "", d.income.toFixed(2), d.paid.toFixed(2), d.rewardPerWinner.toFixed(2), d.treasury.toFixed(2), d.avgInterest.toFixed(3), JSON.stringify(d.reasoning)].join(","),
   );
-  writeFileSync(`${OUT}/${name.replace(":", "-")}.csv`, ["day,difficulty,participants,winners,win_rate,income,paid,reward_per_winner,treasury,avg_interest,reasoning", ...rows].join("\n"));
+  writeFileSync(`${OUT}/${name.replaceAll(":", "-")}.csv`, ["day,difficulty,participants,winners,win_rate,income,paid,reward_per_winner,treasury,avg_interest,reasoning", ...rows].join("\n"));
 }
 
 // Tiny dependency-free SVG line charts (seed 1).
