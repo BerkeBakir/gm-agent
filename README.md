@@ -166,14 +166,15 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
 
 ## Demo video
 
-[![GM Agent v1 demo](https://img.youtube.com/vi/1hf2Hj-q76E/hqdefault.jpg)](https://youtu.be/1hf2Hj-q76E)
+[![GM Agent v2 demo](https://img.youtube.com/vi/eltZ4UOp-ls/hqdefault.jpg)](https://youtu.be/eltZ4UOp-ls)
 
-▶️ **Week 1 demo:** https://youtu.be/1hf2Hj-q76E
+▶️ **Week 2 demo (v2):** https://youtu.be/eltZ4UOp-ls: hysteresis in code, and Claude playing via MCP and paying its own x402 entry fee.
+▶️ **Week 1 demo (v1):** https://youtu.be/1hf2Hj-q76E
 
 ## Demo links
 
 - Week 1 (gmagent.v1): https://youtu.be/1hf2Hj-q76E
-- Week 2 (gmagent.v2): _video coming_
+- Week 2 (gmagent.v2): https://youtu.be/eltZ4UOp-ls
 - Week 3 (gmagent.v3): _coming in Week 3_
 
 Live app: https://gm-agent-lime.vercel.app
