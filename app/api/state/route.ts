@@ -1,26 +1,39 @@
 /**
- * GET /api/state — public dashboard data: today's challenge (no answer), past
- * challenges WITH answers revealed, treasury, decision log and leaderboard.
+ * GET /api/state — public dashboard data: today's challenge (no answer, but its
+ * commitment), past challenges WITH answers revealed and commitments verified,
+ * treasury (smart account + on-chain limit when delegated), decision log and
+ * leaderboard.
  */
 import { formatEther } from "viem";
-import { getWalletAddress } from "@/agent/wallet";
 import { createBaseSepoliaClient, getEthBalance, getUsdcBalance } from "@/src/chain/base-sepolia";
-import { getGameStore, toPublicChallenge } from "@/src/game";
-import { getEntryFee, getLimits, jsonSafe } from "@/src/server/runtime";
+import { getGameStore, toPublicChallenge, verifyCommitment } from "@/src/game";
+import { getAgentWallet, getEntryFee, getLimits, getTreasuryMode, getTxSender, jsonSafe } from "@/src/server/runtime";
+import { DelegatedWallet } from "@/src/wallet/delegated";
 
 export const dynamic = "force-dynamic";
 
+function loadWallets() {
+  try {
+    const wallet = getAgentWallet();
+    return { wallet, sender: getTxSender() };
+  } catch {
+    return { wallet: null, sender: null };
+  }
+}
+
 export async function GET() {
   const store = getGameStore();
-  const address = getWalletAddress();
   const client = createBaseSepoliaClient();
+  const { wallet, sender } = loadWallets();
+  const delegated = wallet instanceof DelegatedWallet ? wallet : null;
 
-  const [current, recent, decisions, usdc, eth] = await Promise.all([
+  const [current, recent, decisions, usdc, eth, availableToday] = await Promise.all([
     store.getCurrentChallenge(),
     store.listChallenges(8),
     store.listDecisions(30),
-    address ? getUsdcBalance(client, address).catch(() => null) : null,
-    address ? getEthBalance(client, address).catch(() => null) : null,
+    wallet ? getUsdcBalance(client, wallet.address).catch(() => null) : null,
+    sender ? getEthBalance(client, sender.address).catch(() => null) : null,
+    delegated ? delegated.availableToday().catch(() => null) : null,
   ]);
   const participantsToday = current ? (await store.getSubmissions(current.id)).length : 0;
 
@@ -42,8 +55,24 @@ export async function GET() {
       challenge: current ? { ...toPublicChallenge(current), participants: participantsToday } : null,
       pastChallenges: recent
         .filter((c) => c.status === "closed")
-        .map((c) => ({ day: c.day, difficulty: c.difficulty, question: c.question, answer: c.answer })),
-      treasury: { address, usdc, eth: eth !== null ? formatEther(eth) : null },
+        .map((c) => ({
+          day: c.day,
+          difficulty: c.difficulty,
+          question: c.question,
+          answer: c.answer,
+          commitment: c.commitment,
+          salt: c.salt,
+          commitmentValid: c.commitment && c.salt ? verifyCommitment(c.commitment, c.salt, c.answer) : null,
+        })),
+      treasury: {
+        mode: wallet ? getTreasuryMode(wallet) : "eoa",
+        address: wallet?.address ?? null,
+        agent: sender?.address ?? null,
+        owner: delegated?.config.owner ?? null,
+        usdc,
+        eth: eth !== null ? formatEther(eth) : null,
+        onchainLimit: delegated ? { dailyLimit: delegated.config.dailyLimit, availableToday } : null,
+      },
       rules: { entryFee: getEntryFee(), ...getLimits() },
       decisions,
       leaderboard,
