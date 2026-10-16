@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { verifyCommitment } from "../src/game/commitment";
 import { MemoryGameStore } from "../src/game/store";
 import { toPublicChallenge, validateNewChallenge } from "../src/game/types";
 
@@ -25,6 +26,17 @@ describe("MemoryGameStore", () => {
     expect(second.day).toBe(2);
     expect((await store.getChallenge(first.id))?.status).toBe("closed");
     expect((await store.getCurrentChallenge())?.id).toBe(second.id);
+  });
+
+  it("commits to the answer and hides the salt from players", async () => {
+    const store = new MemoryGameStore();
+    const c = await store.createChallenge(input);
+    expect(c.commitment).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(verifyCommitment(c.commitment!, c.salt!, c.answer)).toBe(true);
+    const pub = toPublicChallenge(c);
+    expect(pub).toHaveProperty("commitment", c.commitment);
+    expect(pub).not.toHaveProperty("salt");
+    expect(pub).not.toHaveProperty("answer");
   });
 });
 

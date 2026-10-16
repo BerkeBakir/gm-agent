@@ -16,9 +16,13 @@ export interface Challenge extends NewChallenge {
   day: number;
   status: "open" | "closed";
   createdAt: string;
+  /** keccak256(salt, normalized answer), public from the moment the puzzle opens. */
+  commitment?: `0x${string}`;
+  /** Secret until the puzzle closes; revealed with the answer. */
+  salt?: `0x${string}`;
 }
 
-export type PublicChallenge = Omit<Challenge, "answer" | "acceptedAnswers">;
+export type PublicChallenge = Omit<Challenge, "answer" | "acceptedAnswers" | "salt">;
 
 /** All money amounts are USDC base units (6 decimals). */
 export interface NewSubmission {
@@ -65,7 +69,7 @@ export interface DecisionLog {
 
 export type NewDecisionLog = Omit<DecisionLog, "id" | "createdAt">;
 
-export function toPublicChallenge({ answer: _a, acceptedAnswers: _b, ...pub }: Challenge): PublicChallenge {
+export function toPublicChallenge({ answer: _a, acceptedAnswers: _b, salt: _s, ...pub }: Challenge): PublicChallenge {
   return pub;
 }
 

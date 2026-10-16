@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { makeCommitment } from "./commitment";
 import type { Challenge, DecisionLog, NewChallenge, NewDecisionLog, NewSubmission, Submission } from "./types";
 
 export class DuplicateSubmissionError extends Error {
@@ -44,6 +45,7 @@ export class MemoryGameStore implements GameStore {
     for (const c of this.challenges) if (c.status === "open") c.status = "closed";
     const challenge: Challenge = {
       ...input,
+      ...makeCommitment(input.answer),
       id: randomUUID(),
       day: this.challenges.length + 1,
       status: "open",
