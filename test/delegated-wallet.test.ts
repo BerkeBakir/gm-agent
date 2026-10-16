@@ -1,10 +1,10 @@
 import { createDelegation, getSmartAccountsEnvironment, type Delegation } from "@metamask/smart-accounts-kit";
 import { decodeDelegations } from "@metamask/smart-accounts-kit/utils";
-import { decodeFunctionData, parseAbi } from "viem";
-import { describe, expect, it } from "vitest";
+import { decodeFunctionData, ExecutionRevertedError, parseAbi } from "viem";
+import { describe, expect, it, vi } from "vitest";
 import { BASE_SEPOLIA_USDC } from "../src/chain/base-sepolia";
 import { BaseSepoliaWallet } from "../src/wallet/base-sepolia";
-import { buildRedeemCalldata, DelegatedWallet } from "../src/wallet/delegated";
+import { buildRedeemCalldata, DelegatedWallet, OnChainLimitError } from "../src/wallet/delegated";
 import { parseTreasuryConfig, serializeTreasuryConfig, type TreasuryConfig } from "../src/wallet/treasury-config";
 
 const AGENT_KEY = `0x${"ab".repeat(32)}` as const;
@@ -74,5 +74,32 @@ describe("DelegatedWallet", () => {
   it("refuses a delegation made for another agent key", () => {
     const agent = new BaseSepoliaWallet(AGENT_KEY);
     expect(() => new DelegatedWallet(config("0x0000000000000000000000000000000000000002"), agent)).toThrow(/Delegation is for/);
+  });
+
+  it("refuses a treasury token that is not Base Sepolia USDC", () => {
+    const agent = new BaseSepoliaWallet(AGENT_KEY);
+    const c = { ...config(agent.address), token: "0x0000000000000000000000000000000000000003" as const };
+    expect(() => new DelegatedWallet(c, agent)).toThrow(/not Base Sepolia USDC/);
+  });
+
+  it("rethrows a non-revert error unchanged", async () => {
+    const agent = new BaseSepoliaWallet(AGENT_KEY);
+    const wallet = new DelegatedWallet(config(agent.address), agent);
+    vi.spyOn(wallet, "getBalance").mockResolvedValue(10_000_000n);
+    vi.spyOn(agent.publicClient, "call").mockRejectedValue(new Error("network down"));
+    const error = await wallet.transfer(TO, 1n).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("network down");
+    expect(error).not.toBeInstanceOf(OnChainLimitError);
+  });
+
+  it("maps a contract revert to OnChainLimitError", async () => {
+    const agent = new BaseSepoliaWallet(AGENT_KEY);
+    const wallet = new DelegatedWallet(config(agent.address), agent);
+    vi.spyOn(wallet, "getBalance").mockResolvedValue(10_000_000n);
+    vi.spyOn(agent.publicClient, "call").mockRejectedValue(
+      new ExecutionRevertedError({ message: "ERC20PeriodTransferEnforcer:transfer-amount-exceeded" }),
+    );
+    await expect(wallet.transfer(TO, 1n)).rejects.toBeInstanceOf(OnChainLimitError);
   });
 });

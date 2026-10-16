@@ -7,7 +7,7 @@ import {
   getSmartAccountsEnvironment,
 } from "@metamask/smart-accounts-kit";
 import { decodeRevertReason } from "@metamask/smart-accounts-kit/utils";
-import { encodeFunctionData, erc20Abi, getAddress, type Hex } from "viem";
+import { BaseError, encodeFunctionData, erc20Abi, ExecutionRevertedError, getAddress, type Hex } from "viem";
 import { BASE_SEPOLIA_USDC, getUsdcBalance } from "../chain/base-sepolia";
 import type { BaseSepoliaWallet } from "./base-sepolia";
 import type { TreasuryConfig } from "./treasury-config";
@@ -46,6 +46,9 @@ export class DelegatedWallet implements Wallet {
     readonly config: TreasuryConfig,
     readonly executor: BaseSepoliaWallet,
   ) {
+    if (getAddress(config.token) !== getAddress(BASE_SEPOLIA_USDC)) {
+      throw new Error(`Treasury token ${config.token} is not Base Sepolia USDC`);
+    }
     if (getAddress(config.agent) !== executor.address) {
       throw new Error(`Delegation is for ${config.agent}, but the agent key is ${executor.address}`);
     }
@@ -79,8 +82,14 @@ export class DelegatedWallet implements Wallet {
       await this.executor.publicClient.call({ account: this.executor.account, to: this.delegationManager, data });
       txHash = await this.executor.walletClient.sendTransaction({ to: this.delegationManager, data });
     } catch (err) {
+      // Only a contract revert means the delegation refused the transfer. RPC, network and
+      // gas errors are not refusals and must surface unchanged.
       const reason = decodeRevertReason(err);
-      throw new OnChainLimitError(`Delegation refused the transfer: ${reason?.message ?? (err instanceof Error ? err.message : String(err))}`);
+      if (reason) throw new OnChainLimitError(`Delegation refused the transfer: ${reason.message}`);
+      if (err instanceof BaseError && err.walk((e) => e instanceof ExecutionRevertedError)) {
+        throw new OnChainLimitError(`Delegation refused the transfer: ${err.shortMessage}`);
+      }
+      throw err;
     }
     const receipt = await this.executor.publicClient.waitForTransactionReceipt({ hash: txHash });
     if (receipt.status !== "success") throw new OnChainLimitError(`Delegated transfer reverted: ${txHash}`);
