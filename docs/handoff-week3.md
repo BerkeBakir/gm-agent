@@ -54,15 +54,24 @@ Stack: Next.js 16 · React 19 · TypeScript · `@google/genai` (gemini-flash-lat
 | `mcp/server.ts` · `src/mcp/tools.ts` | Başka ajanlar için MCP sunucusu: `get_puzzle`, `submit_answer`, `get_results`, `get_my_wallet`. |
 | `src/wallet/spending-guard.ts` | Zincir üstü transferlerin önündeki harcama koruması. |
 | `scripts/` | `simulate.ts` (`--llm`, `--llm-all`), `demo-players.ts`, `setup-mcp-player.ts` (`npm run mcp:setup`), `balance.ts`. |
+| `src/wallet/delegated.ts` | `DelegatedWallet`: `transfer` redeems the owner-signed delegation (`redeemDelegations`) from the smart account. |
+| `src/wallet/treasury-config.ts` | Reads `treasury/delegation.json` (`TREASURY_CONFIG`), chooses `eoa`/`delegated` (`TREASURY_MODE`). |
+| `src/chain/anchor.ts` | Daily decision anchor tx: calldata `"GMV3" ‖ keccak256(decision) ‖ next commitment`. |
+| `src/game/commitment.ts` | Answer commit-reveal (`keccak256(salt, normalizedAnswer)`). |
+| `scripts/setup-treasury.ts` · `scripts/limit-demo.ts` | `npm run treasury:setup` · `npm run treasury:demo`. |
+| `treasury/delegation.json` | Smart account `0xD020dD00a99A8cB0FDDDF2977D365088cb320C8b` + signed delegation (5 USDC/24 h). |
 | `brand/x/week2/` | X görselleri (`make.py`), video senaryosu/SRT (`video.py`), kesim (`cut.py`) ve altyazı gömme (`burn.py`). H3'te aynı araçlar yeniden kullanılabilir. |
 
-Testler: 79 test (13 dosya), hepsi yeşil. Canlıda 9. gün açık (medium).
+**v3:** treasury is a MetaMask smart account (see `treasury/delegation.json`); owner key (`0xAaF7…5478`) in `.treasury-owner.json` on Berke's machine only. Agent EOA (`0x5cb0…799D`) holds gas and redeems the delegation.
+
+Testler (H2 sonu): 79 test (13 dosya), hepsi yeşil. Canlıda 9. gün açık (medium).
 
 **H2'de yaşanan prod olayı:** 13-14 Ekim'de `/api/gm/run-day` Vercel'in 300 sn sınırında zaman aşımına uğradı; gün kapandı ama yenisi açılmadı. Zaman bütçeleri ve recovery ile düzeltildi, elle bir kez tetiklenerek kurtarıldı. Prod'da bir gün takılırsa: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://gm-agent-lime.vercel.app/api/gm/run-day` (CRON_SECRET `.env`'de).
 
 ## 5. Ortam notları
 
 - Yerel deneme: `npm run dev:memory` (port 3005, `.claude/launch.json` "gm-agent"; prod DB'ye dokunmaz ama x402 settle ve ödemeler **gerçek Base Sepolia** işlemleri).
+- `ANCHOR_DECISIONS=off` günlük zincir üstü karar çıpasını kapatır; `TREASURY_MODE=eoa` eski EOA kasasını zorlar (`delegated` ya da boş = dosyaya göre otomatik). `TREASURY_CONFIG` delegation dosyasının yolu.
 - `.env` / `.env.local`: `GEMINI_API_KEY`, `WALLET_PRIVATE_KEY` (kasa), `CRON_SECRET`, `DATABASE_URL`. **Asla commit edilmez.**
 - MCP, kullanıcının Claude Code'una **user** kapsamında ekli:
   `claude mcp add -s user gm-agent -- node "D:/Claude Code/gm-agent/node_modules/tsx/dist/cli.mjs" "D:/Claude Code/gm-agent/mcp/server.ts"`
