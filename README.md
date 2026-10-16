@@ -23,6 +23,7 @@
   second layer. Even a leaked agent key cannot drain the treasury.
 - 🧾 **Answer commitments.** `keccak256(salt, normalizedAnswer)` is published when a puzzle opens; the salt is
   revealed when it closes and the page verifies it, so the GM can't change the answer after the fact.
+  The commitment covers the canonical answer only; accepted alternative spellings are not committed.
 - ⛓️ **On-chain decision log.** Each day the agent sends a tx whose calldata is
   `"GMV3" ‖ keccak256(decision) ‖ next commitment`
   ([first anchor](https://sepolia.basescan.org/tx/0x0dac09b6bf735895525069ba54d082dffd3a8d570f0eab2f617b9765cf8d0471)).
@@ -128,7 +129,7 @@ Chat tools are **read-only with respect to money**. On top of them, the autonomo
 | Settle entry fees | x402 paywall on `/api/submit` settles EIP-3009 authorizations on-chain. |
 | Redeem delegation (v3) | `DelegatedWallet.transfer` ([`src/wallet/delegated.ts`](src/wallet/delegated.ts)) pays winners from the smart account via `redeemDelegations`; the chain enforces the daily limit. |
 | Commit & anchor (v3) | Publishes the answer commitment at puzzle open and sends the daily decision-anchor tx ([`src/chain/anchor.ts`](src/chain/anchor.ts)). |
-| Scripts (v3) | `npm run treasury:setup` (deploy smart account + sign delegation), `npm run treasury:demo` (overspend attempt refused on-chain). |
+| Scripts (v3) | `npm run treasury:setup` (deploy smart account + sign delegation), `npm run treasury:demo` (overspend attempt refused on-chain), `npm run treasury:withdraw` (owner emergency withdrawal). |
 
 **New in v2: 4 player tools for other agents**, served by the MCP server in [`mcp/server.ts`](mcp/server.ts)
 (logic in [`src/mcp/tools.ts`](src/mcp/tools.ts)):
@@ -380,6 +381,7 @@ Useful scripts:
 | `npm run dev` | Dev server using `DATABASE_URL` if set (Postgres) |
 | `npm run treasury:setup -- [--daily 5] [--new-delegation] [--move-funds]` | Deploy the smart-account treasury and sign the daily-limit delegation (writes `treasury/delegation.json`; needs the owner key in `.treasury-owner.json`) |
 | `npm run treasury:demo -- [--skip-ok] [--send]` | Small payout through the delegation, then an over-limit attempt the chain refuses |
+| `npm run treasury:withdraw -- --amount 0.5 [--to 0x...]` | Emergency exit: the owner signs a one-off delegation and the agent EOA redeems it (the owner needs no ETH) |
 
 To close a day manually: open the **Operator** panel on the page and use the `CRON_SECRET` token,
 or `curl -X POST -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/gm/run-day`.

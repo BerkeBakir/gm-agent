@@ -7,12 +7,12 @@
 import "./load-env";
 import fs from "node:fs";
 import { createDelegation, Implementation, toMetaMaskSmartAccount } from "@metamask/smart-accounts-kit";
-import type { Hex } from "viem";
+import { type Hex, isAddressEqual } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { BASE_SEPOLIA_USDC, EXPLORER_URL } from "../src/chain/base-sepolia";
 import { getTxSender } from "../src/server/runtime";
 import { DelegatedWallet } from "../src/wallet/delegated";
-import { DEFAULT_TREASURY_CONFIG, loadTreasuryConfig, serializeTreasuryConfig, type TreasuryConfig } from "../src/wallet/treasury-config";
+import { DEFAULT_TREASURY_CONFIG, loadTreasuryConfig, periodStart, serializeTreasuryConfig, type TreasuryConfig } from "../src/wallet/treasury-config";
 import { formatUsdc, parseUsdc } from "../src/wallet/usdc";
 
 const OWNER_FILE = ".treasury-owner.json";
@@ -61,10 +61,25 @@ if (!code || code === "0x") {
 }
 
 let config = loadTreasuryConfig();
-if (!config || has("--new-delegation") || config.smartAccount !== smartAccount.address) {
+let regenerateReason: string | null = null;
+if (!config) regenerateReason = "no delegation yet";
+else if (has("--new-delegation")) regenerateReason = "--new-delegation";
+else if (!isAddressEqual(config.smartAccount, smartAccount.address)) regenerateReason = "smart account changed";
+else if (!isAddressEqual(config.agent, agent.address)) regenerateReason = `agent key changed (${config.agent} -> ${agent.address})`;
+
+if (config && !regenerateReason && has("--daily")) {
+  console.log("Note: --daily is ignored unless --new-delegation is given (the existing delegation keeps its limit).");
+}
+if (regenerateReason) {
+  if (config) {
+    console.log(`Regenerating the delegation (${regenerateReason}).`);
+    console.log(
+      `WARNING: the previous delegation to ${config.agent} stays valid on-chain until it is revoked. ` +
+        "If that agent key is still in use, revoke the old delegation (owner disables it on the DelegationManager).",
+    );
+  }
   const dailyLimit = parseUsdc(opt("--daily", "5"));
-  const now = new Date();
-  const startDate = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+  const startDate = periodStart(new Date());
   const delegation = createDelegation({
     to: agent.address,
     from: smartAccount.address,
@@ -99,6 +114,7 @@ if (has("--move-funds")) {
   }
 }
 
+if (!config) throw new Error("Treasury config missing after setup.");
 const treasury = new DelegatedWallet(config, agent);
 console.log(`Treasury balance: ${formatUsdc(await treasury.getBalance())}`);
 console.log(`Available today:  ${formatUsdc(await treasury.availableToday())} of ${formatUsdc(config.dailyLimit)}`);

@@ -6,6 +6,7 @@
 // Usage: npm run treasury:demo -- [--skip-ok] [--send]
 import "./load-env";
 import { decodeRevertReason } from "@metamask/smart-accounts-kit/utils";
+import { BaseError, ExecutionRevertedError } from "viem";
 import { EXPLORER_URL } from "../src/chain/base-sepolia";
 import { getAgentWallet } from "../src/server/runtime";
 import { buildRedeemCalldata, DelegatedWallet } from "../src/wallet/delegated";
@@ -23,9 +24,16 @@ console.log(`Available right now:      ${formatUsdc(await wallet.availableToday(
 
 if (!args.includes("--skip-ok")) {
   const amount = parseUsdc("0.01");
+  const before = await wallet.availableToday();
   const tx = await wallet.transfer(recipient, amount);
   console.log(`✅ ${formatUsdc(amount)} payout through the delegation: ${EXPLORER_URL}/tx/${tx.txHash}`);
-  console.log(`Available now:            ${formatUsdc(await wallet.availableToday())}\n`);
+  // The RPC node may lag behind the receipt; poll until the allowance visibly drops.
+  let now = await wallet.availableToday();
+  for (let i = 0; i < 5 && now >= before; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    now = await wallet.availableToday();
+  }
+  console.log(`Available now:            ${formatUsdc(now)}\n`);
 }
 
 const over = (await wallet.availableToday()) + parseUsdc("1");
@@ -36,7 +44,15 @@ try {
   console.log("⚠️  Unexpected: the chain allowed it.");
 } catch (err) {
   const reason = decodeRevertReason(err);
-  console.log(`⛔ Refused on-chain: ${reason?.errorName ?? "revert"} — ${reason?.message ?? (err instanceof Error ? err.message.split("\n")[0] : String(err))}`);
+  const reverted = err instanceof BaseError && err.walk((e) => e instanceof ExecutionRevertedError);
+  if (reason) {
+    console.log(`⛔ Refused on-chain: ${reason.errorName ?? "revert"} — ${reason.message}`);
+  } else if (reverted) {
+    console.log(`⛔ Refused on-chain: revert — ${err instanceof BaseError ? err.shortMessage : String(err)}`);
+  } else {
+    console.log(`Simulation failed (not a refusal): ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`);
+    process.exit(1);
+  }
 }
 
 if (args.includes("--send")) {

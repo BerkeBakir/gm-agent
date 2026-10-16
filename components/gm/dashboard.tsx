@@ -34,7 +34,7 @@ export function TreasuryStats({ state }: { state: GameStateResponse | null }) {
           <div className="h-2 w-full border bg-muted">
             <div
               className="h-full bg-primary"
-              style={{ width: `${t.onchainLimit.availableToday != null ? Math.min(100, (Number(t.onchainLimit.availableToday) / Number(t.onchainLimit.dailyLimit)) * 100) : 0}%` }}
+              style={{ width: `${t.onchainLimit.availableToday != null && Number(t.onchainLimit.dailyLimit) > 0 ? Math.min(100, (Number(t.onchainLimit.availableToday) / Number(t.onchainLimit.dailyLimit)) * 100) : 0}%` }}
             />
           </div>
           <p className="font-mono text-xs">{t.onchainLimit.availableToday != null ? `${fmtUsdc(t.onchainLimit.availableToday)} left today` : "—"}</p>
