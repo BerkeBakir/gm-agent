@@ -64,6 +64,10 @@ export interface DecisionLog {
   /** Guardrail adjustments applied on top of the LLM's proposal, if any. */
   adjustments: string[];
   payouts: { player: string; amount: bigint; txHash?: string; error?: string }[];
+  /** keccak256 of this log's canonical JSON, written on-chain by the agent. */
+  anchorHash?: `0x${string}`;
+  /** Base Sepolia tx carrying the anchor; missing if anchoring failed or is off. */
+  anchorTx?: string;
   createdAt: string;
 }
 

@@ -55,6 +55,8 @@ type DecisionRow = {
   reasoning: string;
   adjustments: string[];
   payouts: { player: string; amount: string; txHash?: string; error?: string }[];
+  anchor_hash: string | null;
+  anchor_tx: string | null;
   created_at: Date | string;
 };
 
@@ -108,6 +110,8 @@ function toDecision(r: DecisionRow): DecisionLog {
     reasoning: r.reasoning,
     adjustments: r.adjustments,
     payouts: r.payouts.map((p) => ({ ...p, amount: BigInt(p.amount) })),
+    ...(r.anchor_hash && { anchorHash: r.anchor_hash as `0x${string}` }),
+    ...(r.anchor_tx && { anchorTx: r.anchor_tx }),
     createdAt: iso(r.created_at),
   };
 }
@@ -172,6 +176,7 @@ export class PostgresGameStore implements GameStore {
           payouts           jsonb NOT NULL DEFAULT '[]',
           created_at        timestamptz NOT NULL DEFAULT now()
         )`;
+      await this.sql`ALTER TABLE decisions ADD COLUMN IF NOT EXISTS anchor_hash text, ADD COLUMN IF NOT EXISTS anchor_tx text`;
     })();
     return this.ready;
   }
@@ -285,5 +290,10 @@ export class PostgresGameStore implements GameStore {
     const rows = (await this.sql`
       SELECT * FROM decisions ORDER BY created_at DESC LIMIT ${limit}`) as DecisionRow[];
     return rows.map(toDecision);
+  }
+
+  async setDecisionAnchor(id: string, hash: `0x${string}`, txHash: string | null): Promise<void> {
+    await this.init();
+    await this.sql`UPDATE decisions SET anchor_hash = ${hash}, anchor_tx = ${txHash} WHERE id = ${id}`;
   }
 }
