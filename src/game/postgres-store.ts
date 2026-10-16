@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { makeCommitment } from "./commitment";
 import { DuplicateSubmissionError, type GameStore } from "./store";
 import type {
   Challenge,
@@ -20,6 +21,8 @@ type ChallengeRow = {
   accepted_answers: string[];
   status: "open" | "closed";
   created_at: Date | string;
+  commitment: string | null;
+  salt: string | null;
 };
 
 type SubmissionRow = {
@@ -52,6 +55,8 @@ type DecisionRow = {
   reasoning: string;
   adjustments: string[];
   payouts: { player: string; amount: string; txHash?: string; error?: string }[];
+  anchor_hash: string | null;
+  anchor_tx: string | null;
   created_at: Date | string;
 };
 
@@ -66,6 +71,8 @@ function toChallenge(r: ChallengeRow): Challenge {
     answer: r.answer,
     ...(r.accepted_answers.length > 0 && { acceptedAnswers: r.accepted_answers }),
     status: r.status,
+    ...(r.commitment && { commitment: r.commitment as `0x${string}` }),
+    ...(r.salt && { salt: r.salt as `0x${string}` }),
     createdAt: iso(r.created_at),
   };
 }
@@ -103,6 +110,8 @@ function toDecision(r: DecisionRow): DecisionLog {
     reasoning: r.reasoning,
     adjustments: r.adjustments,
     payouts: r.payouts.map((p) => ({ ...p, amount: BigInt(p.amount) })),
+    ...(r.anchor_hash && { anchorHash: r.anchor_hash as `0x${string}` }),
+    ...(r.anchor_tx && { anchorTx: r.anchor_tx }),
     createdAt: iso(r.created_at),
   };
 }
@@ -130,6 +139,7 @@ export class PostgresGameStore implements GameStore {
           status           text NOT NULL,
           created_at       timestamptz NOT NULL DEFAULT now()
         )`;
+      await this.sql`ALTER TABLE challenges ADD COLUMN IF NOT EXISTS commitment text, ADD COLUMN IF NOT EXISTS salt text`;
       await this.sql`
         CREATE TABLE IF NOT EXISTS submissions (
           id           uuid PRIMARY KEY,
@@ -166,18 +176,20 @@ export class PostgresGameStore implements GameStore {
           payouts           jsonb NOT NULL DEFAULT '[]',
           created_at        timestamptz NOT NULL DEFAULT now()
         )`;
+      await this.sql`ALTER TABLE decisions ADD COLUMN IF NOT EXISTS anchor_hash text, ADD COLUMN IF NOT EXISTS anchor_tx text`;
     })();
     return this.ready;
   }
 
   async createChallenge(input: NewChallenge): Promise<Challenge> {
     await this.init();
+    const { salt, commitment } = makeCommitment(input.answer);
     const [, inserted] = await this.sql.transaction([
       this.sql`UPDATE challenges SET status = 'closed' WHERE status = 'open'`,
       this.sql`
-        INSERT INTO challenges (id, day, difficulty, question, answer, accepted_answers, status)
+        INSERT INTO challenges (id, day, difficulty, question, answer, accepted_answers, status, commitment, salt)
         SELECT ${randomUUID()}, COALESCE(MAX(day), 0) + 1, ${input.difficulty}, ${input.question},
-               ${input.answer}, ${JSON.stringify(input.acceptedAnswers ?? [])}::jsonb, 'open'
+               ${input.answer}, ${JSON.stringify(input.acceptedAnswers ?? [])}::jsonb, 'open', ${commitment}, ${salt}
         FROM challenges
         RETURNING *`,
     ]);
@@ -278,5 +290,10 @@ export class PostgresGameStore implements GameStore {
     const rows = (await this.sql`
       SELECT * FROM decisions ORDER BY created_at DESC LIMIT ${limit}`) as DecisionRow[];
     return rows.map(toDecision);
+  }
+
+  async setDecisionAnchor(id: string, hash: `0x${string}`, txHash: string | null): Promise<void> {
+    await this.init();
+    await this.sql`UPDATE decisions SET anchor_hash = ${hash}, anchor_tx = ${txHash} WHERE id = ${id}`;
   }
 }

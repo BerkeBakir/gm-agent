@@ -16,9 +16,13 @@ export interface Challenge extends NewChallenge {
   day: number;
   status: "open" | "closed";
   createdAt: string;
+  /** keccak256(salt, normalized answer), public from the moment the puzzle opens. */
+  commitment?: `0x${string}`;
+  /** Secret until the puzzle closes; revealed with the answer. */
+  salt?: `0x${string}`;
 }
 
-export type PublicChallenge = Omit<Challenge, "answer" | "acceptedAnswers">;
+export type PublicChallenge = Omit<Challenge, "answer" | "acceptedAnswers" | "salt">;
 
 /** All money amounts are USDC base units (6 decimals). */
 export interface NewSubmission {
@@ -60,12 +64,16 @@ export interface DecisionLog {
   /** Guardrail adjustments applied on top of the LLM's proposal, if any. */
   adjustments: string[];
   payouts: { player: string; amount: bigint; txHash?: string; error?: string }[];
+  /** keccak256 of this log's canonical JSON, written on-chain by the agent. */
+  anchorHash?: `0x${string}`;
+  /** Base Sepolia tx carrying the anchor; missing if anchoring failed or is off. */
+  anchorTx?: string;
   createdAt: string;
 }
 
-export type NewDecisionLog = Omit<DecisionLog, "id" | "createdAt">;
+export type NewDecisionLog = Omit<DecisionLog, "id" | "createdAt" | "anchorHash" | "anchorTx">;
 
-export function toPublicChallenge({ answer: _a, acceptedAnswers: _b, ...pub }: Challenge): PublicChallenge {
+export function toPublicChallenge({ answer: _a, acceptedAnswers: _b, salt: _s, ...pub }: Challenge): PublicChallenge {
   return pub;
 }
 

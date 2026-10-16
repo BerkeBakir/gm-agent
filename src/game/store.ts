@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { makeCommitment } from "./commitment";
 import type { Challenge, DecisionLog, NewChallenge, NewDecisionLog, NewSubmission, Submission } from "./types";
 
 export class DuplicateSubmissionError extends Error {
@@ -33,6 +34,8 @@ export interface GameStore {
   addDecision(entry: NewDecisionLog): Promise<DecisionLog>;
   /** Newest first. */
   listDecisions(limit: number): Promise<DecisionLog[]>;
+  /** Records the on-chain anchor of a decision (txHash null = hash computed but not anchored). */
+  setDecisionAnchor(id: string, hash: `0x${string}`, txHash: string | null): Promise<void>;
 }
 
 export class MemoryGameStore implements GameStore {
@@ -44,6 +47,7 @@ export class MemoryGameStore implements GameStore {
     for (const c of this.challenges) if (c.status === "open") c.status = "closed";
     const challenge: Challenge = {
       ...input,
+      ...makeCommitment(input.answer),
       id: randomUUID(),
       day: this.challenges.length + 1,
       status: "open",
@@ -114,5 +118,12 @@ export class MemoryGameStore implements GameStore {
 
   async listDecisions(limit: number): Promise<DecisionLog[]> {
     return this.decisions.slice(-limit).reverse().map((d) => structuredClone(d));
+  }
+
+  async setDecisionAnchor(id: string, hash: `0x${string}`, txHash: string | null): Promise<void> {
+    const d = this.decisions.find((x) => x.id === id);
+    if (!d) throw new Error(`Unknown decision ${id}`);
+    d.anchorHash = hash;
+    if (txHash) d.anchorTx = txHash;
   }
 }

@@ -3,10 +3,10 @@
  *
  * 1st request (no X-PAYMENT)  → 402 + x402 PaymentRequirements (entry fee in USDC)
  * 2nd request (X-PAYMENT)     → verify EIP-3009 signature → settle ON-CHAIN into the
- *                               agent's treasury → grade → store → 200 + X-PAYMENT-RESPONSE
+ *                               treasury (smart account in delegated mode) → grade → store → 200 + X-PAYMENT-RESPONSE
  */
 import { DuplicateSubmissionError, getGameStore, isCorrectAnswer } from "@/src/game";
-import { getAgentWallet, getEntryFee } from "@/src/server/runtime";
+import { getAgentWallet, getEntryFee, getTxSender } from "@/src/server/runtime";
 import {
   buildPaymentRequirements,
   decodePaymentHeader,
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
   let txHash: string;
   try {
-    txHash = await settlePayment(payment, wallet);
+    txHash = await settlePayment(payment, getTxSender());
   } catch (err) {
     await store.removeSubmission(submission.id);
     return Response.json({ error: `Payment settlement failed: ${err instanceof Error ? err.message : String(err)}` }, { status: 502 });

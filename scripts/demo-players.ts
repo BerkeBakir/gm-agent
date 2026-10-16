@@ -9,21 +9,14 @@
 // Then close the day from the Operator panel (or --close) to see rewards paid on-chain.
 //
 // Flags: --url <site> (default production), --answers "a,b,c", --fund 0.5, --close
+import "./load-env";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { createBaseSepoliaClient, EXPLORER_URL, getUsdcBalance } from "../src/chain/base-sepolia";
-import { BaseSepoliaWallet } from "../src/wallet/base-sepolia";
+import { getAgentWallet } from "../src/server/runtime";
 import { formatUsdc, parseUsdc } from "../src/wallet/usdc";
 import { payAndSubmit } from "../src/x402/client";
-
-for (const file of [".env", ".env.local"]) {
-  if (!existsSync(file)) continue;
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^([A-Z0-9_]+)="?(.*?)"?\s*$/);
-    if (m && !process.env[m[1]!]) process.env[m[1]!] = m[2]!;
-  }
-}
 
 const arg = (name: string, fallback?: string) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -39,9 +32,7 @@ const keys: Hex[] = existsSync(FILE) ? JSON.parse(readFileSync(FILE, "utf8")) : 
 while (keys.length < answers.length) keys.push(generatePrivateKey());
 writeFileSync(FILE, JSON.stringify(keys, null, 2));
 
-const agentKey = process.env.WALLET_PRIVATE_KEY as Hex | undefined;
-if (!agentKey) throw new Error("WALLET_PRIVATE_KEY missing in .env");
-const agent = new BaseSepoliaWallet(agentKey);
+const agent = getAgentWallet(); // smart-account treasury when delegated: top-ups count against the daily limit
 const client = createBaseSepoliaClient();
 console.log(`Agent treasury ${agent.address}: ${formatUsdc(await agent.getBalance())}`);
 

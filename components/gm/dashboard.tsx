@@ -26,14 +26,46 @@ export function TreasuryStats({ state }: { state: GameStateResponse | null }) {
           </div>
         ))}
       </div>
-      {t?.address && (
-        <a className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground uppercase hover:text-primary" href={addrUrl(t.address)} target="_blank" rel="noreferrer">
-          Agent wallet {short(t.address)} <ExternalLink className="size-3" />
-        </a>
+      {t?.onchainLimit && (
+        <div className="flex flex-col gap-1">
+          <p className="font-mono text-[11px] text-muted-foreground uppercase">
+            On-chain limit · {fmtUsdc(t.onchainLimit.dailyLimit)} / day
+          </p>
+          <div className="h-2 w-full border bg-muted">
+            <div
+              className="h-full bg-primary"
+              style={{ width: `${t.onchainLimit.availableToday != null && Number(t.onchainLimit.dailyLimit) > 0 ? Math.min(100, (Number(t.onchainLimit.availableToday) / Number(t.onchainLimit.dailyLimit)) * 100) : 0}%` }}
+            />
+          </div>
+          <p className="font-mono text-xs">{t.onchainLimit.availableToday != null ? `${fmtUsdc(t.onchainLimit.availableToday)} left today` : "—"}</p>
+        </div>
       )}
+      <div className="flex flex-col gap-1 font-mono text-xs text-muted-foreground uppercase">
+        {t?.address && (
+          <a className="inline-flex items-center gap-1 hover:text-primary" href={addrUrl(t.address)} target="_blank" rel="noreferrer">
+            {t.mode === "delegated" ? "Smart account" : "Agent wallet"} {short(t.address)} <ExternalLink className="size-3" />
+          </a>
+        )}
+        {t?.mode === "delegated" && t.agent && (
+          <a className="inline-flex items-center gap-1 hover:text-primary" href={addrUrl(t.agent)} target="_blank" rel="noreferrer">
+            Agent key (gas only) {short(t.agent)} <ExternalLink className="size-3" />
+          </a>
+        )}
+        {t?.owner && (
+          <a className="inline-flex items-center gap-1 hover:text-primary" href={addrUrl(t.owner)} target="_blank" rel="noreferrer">
+            Owner {short(t.owner)} <ExternalLink className="size-3" />
+          </a>
+        )}
+      </div>
       {state && (
         <p className="text-xs text-muted-foreground">
-          Hard limits (enforced in code): max {fmtUsdc(state.rules.maxPerTx)} per winner, at most {state.rules.maxDailyFractionBps / 100}% of the treasury per day.
+          {t?.mode === "delegated" && (
+            <>
+              <Badge variant="outline" className="mr-1 font-mono uppercase">MetaMask delegation</Badge>
+              The treasury is a smart account; the agent can only spend through a delegation capped at {fmtUsdc(t.onchainLimit?.dailyLimit)} per day by a contract.{" "}
+            </>
+          )}
+          In code: max {fmtUsdc(state.rules.maxPerTx)} per winner, at most {state.rules.maxDailyFractionBps / 100}% of the treasury per day.
         </p>
       )}
     </div>
@@ -86,6 +118,11 @@ export function DecisionLogList({ decisions }: { decisions: Decision[] }) {
               ))}
             </ul>
           )}
+          {d.anchorTx && (
+            <a className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-primary uppercase" href={txUrl(d.anchorTx)} target="_blank" rel="noreferrer">
+              Anchored on Base · {short(d.anchorHash)} <ExternalLink className="size-3" />
+            </a>
+          )}
         </article>
       ))}
     </div>
@@ -132,6 +169,11 @@ export function PastChallenges({ rows }: { rows: GameStateResponse["pastChalleng
           <p className="font-mono text-xs">
             Answer: <span className="text-primary">{c.answer}</span>
           </p>
+          {c.commitmentValid !== null && (
+            <p className="font-mono text-xs text-muted-foreground">
+              Commitment {short(c.commitment)} · {c.commitmentValid ? "verified ✓" : "MISMATCH ✗"}
+            </p>
+          )}
         </li>
       ))}
     </ul>

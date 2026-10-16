@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { decisionHash, parseAnchorCalldata } from "../src/chain/anchor";
 import { MemoryGameStore } from "../src/game/store";
 import { runDay } from "../src/gm/run-day";
 import { StaticChallengeAuthor } from "../src/gm/authors";
@@ -119,5 +120,40 @@ describe("runDay", () => {
     expect(report.log.decidedBy).toBe("recovery");
     expect(report.newChallenge.day).toBe(3);
     expect((await store.getCurrentChallenge())?.day).toBe(3);
+  });
+
+  it("anchors the decision hash and next commitment on-chain", async () => {
+    const { store, deps } = setup();
+    const sent: `0x${string}`[] = [];
+    const report = await runDay({ ...deps, anchor: async (data) => { sent.push(data); return "0xanchor"; } });
+    expect(sent).toHaveLength(1);
+    const parsed = parseAnchorCalldata(sent[0]!);
+    expect(parsed?.decisionHash).toBe(decisionHash(report.log));
+    expect(parsed?.commitment).toBe(report.newChallenge.commitment);
+    const [log] = await store.listDecisions(1);
+    expect(log?.anchorTx).toBe("0xanchor");
+    expect(log?.anchorHash).toBe(parsed?.decisionHash);
+  });
+
+  it("a failing anchor never fails the day", async () => {
+    const { store, deps } = setup();
+    const report = await runDay({ ...deps, anchor: async () => { throw new Error("rpc down"); } });
+    expect(report.newChallenge.day).toBe(1);
+    const [log] = await store.listDecisions(1);
+    expect(log?.anchorTx).toBeUndefined();
+    expect(log?.anchorHash).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+});
+
+describe("runDay anchor persistence", () => {
+  it("does not fail the day when saving the anchor throws", async () => {
+    const { store, deps } = setup();
+    vi.spyOn(store, "setDecisionAnchor").mockRejectedValue(new Error("db down"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const report = await runDay({ ...deps, anchor: async () => "0xabc" });
+    expect(report.newChallenge.day).toBe(1);
+    expect(report.log.anchorTx).toBe("0xabc");
+    expect(report.log.anchorHash).toBeTruthy();
+    warn.mockRestore();
   });
 });

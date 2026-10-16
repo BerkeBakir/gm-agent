@@ -19,11 +19,15 @@
     "simulate": "tsx scripts/simulate.ts",
     "demo:players": "tsx scripts/demo-players.ts",
     "mcp": "tsx mcp/server.ts",
-    "mcp:setup": "tsx scripts/setup-mcp-player.ts"
+    "mcp:setup": "tsx scripts/setup-mcp-player.ts",
+    "treasury:setup": "tsx scripts/setup-treasury.ts",
+    "treasury:demo": "tsx scripts/limit-demo.ts",
+    "treasury:withdraw": "tsx scripts/withdraw-treasury.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@google/genai": "^2.24.0",
+    "@metamask/smart-accounts-kit": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@neondatabase/serverless": "^1.2.0",
     "class-variance-authority": "^0.7.1",

@@ -4,7 +4,8 @@
  *
  * Implementations:
  * - MockWallet: in-memory, used for tests and off-chain simulations
- * - BaseSepoliaWallet (week 3): real on-chain wallet
+ * - BaseSepoliaWallet: plain EOA on Base Sepolia (also the agent's gas/tx sender)
+ * - DelegatedWallet: MetaMask smart account, spent through an on-chain-limited delegation
  */
 export type Address = `0x${string}`;
 
@@ -18,6 +19,8 @@ export interface Wallet {
   readonly address: Address;
   getBalance(): Promise<bigint>;
   transfer(to: Address, amount: bigint): Promise<TransferResult>;
+  /** What an external (e.g. on-chain) limit still allows today. Only wallets with such a limit implement it. */
+  availableToday?(): Promise<bigint>;
 }
 
 export class InsufficientFundsError extends Error {

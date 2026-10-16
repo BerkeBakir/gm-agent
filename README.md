@@ -14,6 +14,24 @@
 
 ---
 
+## What's new in v3 (Week 3)
+
+- 🔐 **The treasury is now a MetaMask smart account** (`@metamask/smart-accounts-kit` 2.0.0, Hybrid DeleGator
+  at [`0xD020…0C8b`](https://sepolia.basescan.org/address/0xD020dD00a99A8cB0FDDDF2977D365088cb320C8b)). The agent's key
+  holds only gas; it spends through an owner-signed **delegation** with an `erc20PeriodTransfer` caveat: **max 5 USDC
+  per 24 h**, enforced by the `ERC20PeriodTransferEnforcer` contract. The code caps (2 USDC/winner, 10%/day) stay as a
+  second layer. Even a leaked agent key cannot drain the treasury.
+- 🧾 **Answer commitments.** `keccak256(salt, normalizedAnswer)` is published when a puzzle opens; the salt is
+  revealed when it closes and the page verifies it, so the GM can't change the answer after the fact.
+  The commitment covers the canonical answer only; accepted alternative spellings are not committed.
+- ⛓️ **On-chain decision log.** Each day the agent sends a tx whose calldata is
+  `"GMV3" ‖ keccak256(decision) ‖ next commitment`
+  ([first anchor](https://sepolia.basescan.org/tx/0x0dac09b6bf735895525069ba54d082dffd3a8d570f0eab2f617b9765cf8d0471)).
+- 🧪 **`npm run treasury:demo`**: the agent tries to overspend and the chain refuses. Live proof on Base Sepolia:
+  a [0.01 USDC payout through the delegation](https://sepolia.basescan.org/tx/0x1ad1fdc81f814a1c2377a4fbfb06e8f0cec6a056c4a980915225ba824d73926f)
+  succeeds, a [6 USDC attempt](https://sepolia.basescan.org/tx/0x4a1c73b3b5f594868fe5e80c26b456cb0822e4c8e3815f6ac1ebfe9437e5406a)
+  is refused on-chain with `ERC20PeriodTransferEnforcer:transfer-amount-exceeded`.
+
 ## What's new in v2 (Week 2)
 
 - 🎚️ **Difficulty hysteresis, enforced in code.** Week-1 experiments showed Gemini flipped puzzle difficulty
@@ -78,6 +96,7 @@ GM Agent hands that whole job to an AI agent **that holds its own money**:
 | Language | TypeScript | 5.9.3 |
 | LLM SDK | `@google/genai` (Google Gemini) | 2.27.0 |
 | Blockchain | viem | 2.57.2 |
+| Smart account / delegation | `@metamask/smart-accounts-kit` | 2.0.0 |
 | Network / token | Base Sepolia testnet · Circle USDC (EIP-3009) | chain id 84532 |
 | Payments | x402 protocol, `exact` scheme | v1 |
 | Database | Neon Postgres (`@neondatabase/serverless`) | 1.2.0 |
@@ -108,6 +127,9 @@ Chat tools are **read-only with respect to money**. On top of them, the autonomo
 | Pay winners | Real USDC transfers on Base Sepolia from the agent wallet. |
 | Author next puzzle | Gemini writes a puzzle; a second, blind Gemini call must solve it or it is rewritten. |
 | Settle entry fees | x402 paywall on `/api/submit` settles EIP-3009 authorizations on-chain. |
+| Redeem delegation (v3) | `DelegatedWallet.transfer` ([`src/wallet/delegated.ts`](src/wallet/delegated.ts)) pays winners from the smart account via `redeemDelegations`; the chain enforces the daily limit. |
+| Commit & anchor (v3) | Publishes the answer commitment at puzzle open and sends the daily decision-anchor tx ([`src/chain/anchor.ts`](src/chain/anchor.ts)). |
+| Scripts (v3) | `npm run treasury:setup` (deploy smart account + sign delegation), `npm run treasury:demo` (overspend attempt refused on-chain), `npm run treasury:withdraw` (owner emergency withdrawal). |
 
 **New in v2: 4 player tools for other agents**, served by the MCP server in [`mcp/server.ts`](mcp/server.ts)
 (logic in [`src/mcp/tools.ts`](src/mcp/tools.ts)):
@@ -157,6 +179,9 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
   30–50% band or outside it two days in a row, one step at a time. Gemini proposes; blocked proposals are logged.
 - 🤖 **Lets other AI agents play (v2)** — MCP server with 4 tools; the agent pays its own x402 entry fee.
 - 🏦 **Pays winners on-chain** — real USDC transfers on Base Sepolia, every tx linked on the page.
+- 🔐 **Smart-account treasury with a contract-enforced limit (v3)** — payouts go through a MetaMask delegation capped at 5 USDC per 24 h on-chain.
+- 🧾 **Verifiable answers (v3)** — commit-reveal on the answer key, checked on the page.
+- ⛓️ **Tamper-evident accounting (v3)** — a daily on-chain anchor of the decision hash.
 - 📒 **Keeps a public decision log** — what it saw, what it decided, what the guardrails changed, and why.
 - 💬 **Talks** — a chat where anyone can ask the GM about today's puzzle, the treasury, or why it paid
   what it paid. Chat tools are read-only; money only moves in the daily loop.
@@ -184,14 +209,13 @@ Live app: https://gm-agent-lime.vercel.app
 **Done in Week 2 (gmagent.v2):** code-enforced difficulty hysteresis, MCP server so other AI agents
 play and pay via x402, time budgets + self-recovery for the daily loop.
 
-**Week 3 (gmagent.v3)**
-- **ZK answer commitments** — publish a hash commitment of the answer key at puzzle creation and a
-  ZK proof at grading time, so players can verify the GM didn't change the answer after the fact.
+**Done in Week 3 (gmagent.v3):** smart-account treasury with on-chain daily limit (MetaMask delegation),
+answer commitments (commit-reveal), on-chain decision anchors.
+
+**Next**
+- **ZK answer proofs** — replace commit-reveal with a ZK proof at grading time.
 - **Sponsored prize pools** — anyone can top up the treasury via x402 and the GM accounts for it.
 - **Multiple game modes** — trivia, word games and multi-day tournaments run by the same agent.
-- **Onchain decision log** — anchor each day's decision hash on Base for tamper-evident accounting.
-- **Smart-account treasury** — move the agent key to a smart account with on-chain spending limits
-  (delegated allowance) instead of an env var, so the caps hold even outside our code.
 
 **Later**
 - **Model switching in the UI** — pick Gemini / Claude / OpenAI per role: chat, puzzle author, treasurer.
@@ -226,14 +250,16 @@ flowchart LR
   end
   DB[(Neon Postgres<br/>challenges · submissions · decisions)]
   CHAIN[(Base Sepolia<br/>USDC · agent wallet)]
+  SA[(Smart account<br/>USDC treasury)]
 
   P -- "1. answer → 402" --> SUB
   P -- "2. EIP-3009 signature (X-PAYMENT)" --> SUB
-  SUB -- transferWithAuthorization --> CHAIN
+  SUB -- transferWithAuthorization --> SA
   SUB --> DB
   RUN --> GM
   GM --> DB
-  S4 -- USDC transfer --> CHAIN
+  S4 -- redeemDelegations --> SA
+  S6 -- anchor tx --> CHAIN
   UI --> STATE --> DB
   STATE --> CHAIN
   UI --> CHAT
@@ -250,6 +276,11 @@ flowchart LR
 | [`mcp/server.ts`](mcp/server.ts) · [`src/mcp/tools.ts`](src/mcp/tools.ts) | MCP server that lets other AI agents play. |
 | [`src/wallet/`](src/wallet/) | `Wallet` interface, `BaseSepoliaWallet` (real USDC), `MockWallet` (sims), `SpendingGuard`. |
 | [`src/game/`](src/game/) | Challenges, submissions, decision log; in-memory and Neon Postgres stores; answer checking. |
+| [`src/wallet/delegated.ts`](src/wallet/delegated.ts) | `DelegatedWallet`: pays from the smart account by redeeming the owner-signed delegation (v3). |
+| [`src/wallet/treasury-config.ts`](src/wallet/treasury-config.ts) | Loads `treasury/delegation.json` and picks `eoa` or `delegated` mode. |
+| [`src/chain/anchor.ts`](src/chain/anchor.ts) | Daily decision anchor tx: `"GMV3" ‖ keccak256(decision) ‖ next commitment`. |
+| [`src/game/commitment.ts`](src/game/commitment.ts) | Answer commit-reveal: `keccak256(salt, normalizedAnswer)`. |
+| [`treasury/delegation.json`](treasury/delegation.json) | Smart-account address and the signed delegation (no private keys). |
 | [`src/sim/simulate.ts`](src/sim/simulate.ts) | Off-chain economy simulator with bot players. |
 | [`agent/`](agent/) | Agent loop + chat tools (from the Agentmaxxing starter kit, adapted). |
 | [`app/`](app/) | Next.js page and API routes. |
@@ -275,11 +306,20 @@ The starter kit's x402 demo only *signs* payments. GM Agent **settles** them:
 Verified against the real Base Sepolia USDC contract: a valid signature passes signature checks,
 a tampered amount fails with `FiatTokenV2: invalid signature`.
 
-### Rewards: real transfers, behind a spending guard
+### Rewards: two layers of limits, one smart-account treasury
 
-At day end every payout goes through `SpendingGuard` (`src/wallet/spending-guard.ts`):
-per-transfer cap and a daily cap of 10% of the start-of-day treasury. Each payout's tx hash is
-stored and shown in the decision log with a BaseScan link.
+Since v3 the treasury is a **MetaMask smart account** (Hybrid DeleGator). The owner signed a
+**delegation** to the agent key with an `erc20PeriodTransfer` caveat; the agent pays winners by
+calling `redeemDelegations` on the DelegationManager (`0xdb9B…7dB3`).
+
+1. **On-chain layer:** at most **5 USDC per 24 h**, enforced by `ERC20PeriodTransferEnforcer`. Code can't
+   bypass it: a 6 USDC attempt reverts with `ERC20PeriodTransferEnforcer:transfer-amount-exceeded`.
+2. **Code layer:** `SpendingGuard` (`src/wallet/spending-guard.ts`) keeps the per-transfer cap (2 USDC) and a
+   daily cap of 10% of the start-of-day treasury. Each payout's tx hash is stored and shown in the decision log.
+
+Entry fees (x402) land directly in the smart account. After each day the agent also **anchors** the decision:
+a tx whose calldata is `"GMV3" ‖ keccak256(decision) ‖ next commitment` (disable with `ANCHOR_DECISIONS=off`).
+`TREASURY_MODE=eoa` falls back to the old plain-EOA treasury.
 
 ### Why this is meaningful, not bolted on
 
@@ -339,6 +379,9 @@ Useful scripts:
 | `npm run mcp:setup` | Create + fund the test wallet the MCP player agent pays from |
 | `npm run mcp` | Start the MCP server (stdio) |
 | `npm run dev` | Dev server using `DATABASE_URL` if set (Postgres) |
+| `npm run treasury:setup -- [--daily 5] [--new-delegation] [--move-funds]` | Deploy the smart-account treasury and sign the daily-limit delegation (writes `treasury/delegation.json`; needs the owner key in `.treasury-owner.json`) |
+| `npm run treasury:demo -- [--skip-ok] [--send]` | Small payout through the delegation, then an over-limit attempt the chain refuses |
+| `npm run treasury:withdraw -- --amount 0.5 [--to 0x...]` | Emergency exit: the owner signs a one-off delegation and the agent EOA redeems it (the owner needs no ETH) |
 
 To close a day manually: open the **Operator** panel on the page and use the `CRON_SECRET` token,
 or `curl -X POST -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/gm/run-day`.
@@ -356,6 +399,9 @@ or `curl -X POST -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/gm/r
 | `ENTRY_FEE_USDC` | Default `0.10` |
 | `MAX_REWARD_PER_TX` / `MAX_DAILY_TREASURY_FRACTION` | Guardrails, default `2.00` / `0.10` |
 | `GM_PERSONA` | `balanced` (default), `treasurer` or `entertainer` |
+| `TREASURY_MODE` | `eoa` or `delegated`. Unset = auto (delegated if the config file exists) |
+| `TREASURY_CONFIG` | Path to the delegation config, default `treasury/delegation.json` |
+| `ANCHOR_DECISIONS` | `off` disables the daily on-chain decision anchor |
 
 ## Let other agents play
 
@@ -396,6 +442,9 @@ Claude Desktop (`claude_desktop_config.json`):
 - **Money can't be moved from chat.** Chat tools are read-only; payouts only happen in the
   `CRON_SECRET`-protected daily loop.
 - **The LLM can't overspend.** Per-tx and daily caps are enforced in code after the LLM decides.
+- **The agent key alone can no longer drain the treasury (v3).** The funds sit in a smart account owned by a
+  separate owner key (kept only on the developer machine); the agent key can only redeem a delegation capped at
+  5 USDC per 24 h by an on-chain enforcer, and it can't change that limit.
 - **Player agents can't be overcharged.** The x402 client checks network, asset and amount before signing.
 - **The answer key never leaves the server** while a puzzle is open (`toPublicChallenge` strips it;
   tested). The system prompt also forbids revealing it.

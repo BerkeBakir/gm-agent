@@ -1,6 +1,8 @@
+import type { Hex } from "viem";
+import { anchorCalldata, decisionHash } from "../chain/anchor";
 import type { GameStore } from "../game/store";
 import { type Challenge, type DecisionLog, validateNewChallenge } from "../game/types";
-import { SpendingGuard, type SpendingLimits } from "../wallet/spending-guard";
+import { dailyBudget, SpendingGuard, type SpendingLimits } from "../wallet/spending-guard";
 import type { Wallet } from "../wallet/types";
 import { StaticChallengeAuthor } from "./authors";
 import { applyGuardrails } from "./policy";
@@ -17,12 +19,14 @@ export interface RunDayDeps {
   targetWinRate?: { min: number; max: number };
   /** Enforce difficulty hysteresis in code (default true). */
   hysteresis?: boolean;
+  /** Writes the decision hash and next commitment on-chain. Optional; failures never fail the day. */
+  anchor?: (data: Hex) => Promise<string>;
   /**
    * Time budget per LLM step. The whole run must finish inside the 300 s serverless limit,
    * otherwise the day is claimed but never reopened. On timeout the rule-based decider /
    * puzzle bank takes over, exactly like on an error.
    */
-  timeouts?: { decideMs?: number; authorMs?: number };
+  timeouts?: { decideMs?: number; authorMs?: number; anchorMs?: number };
 }
 
 /** Rejects if `promise` doesn't settle within `ms` (the promise itself keeps running). */
@@ -42,7 +46,7 @@ export interface DayReport {
 }
 
 const DEFAULT_TARGET = { min: 0.3, max: 0.5 };
-const DEFAULT_TIMEOUTS = { decideMs: 90_000, authorMs: 120_000 };
+const DEFAULT_TIMEOUTS = { decideMs: 90_000, authorMs: 120_000, anchorMs: 30_000 };
 
 /** Collects everything the GM needs to decide how to close the current day. */
 export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
@@ -60,7 +64,7 @@ export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
     day: challenge?.day ?? 0,
     challenge,
     treasury,
-    dailyBudget: (treasury * BigInt(limits.maxDailyFractionBps)) / 10_000n,
+    dailyBudget: await dailyBudget(wallet, treasury, limits),
     maxPerTx: limits.maxPerTx,
     entryFee: deps.entryFee,
     today: {
@@ -94,6 +98,7 @@ export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
  *   4. pay every winner through the SpendingGuard
  *   5. author and publish the next challenge
  *   6. write the decision log
+ *   7. anchor the decision hash and next commitment on-chain (optional)
  * The cron job, the admin button and the simulator all call this same function.
  */
 export async function runDay(deps: RunDayDeps): Promise<DayReport> {
@@ -181,6 +186,23 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
     adjustments: [...decision.adjustments, ...notes],
     payouts,
   });
+
+  if (deps.anchor) {
+    const hash = decisionHash(log);
+    let txHash: string | null = null;
+    try {
+      txHash = await withTimeout(deps.anchor(anchorCalldata(hash, newChallenge.commitment)), timeouts.anchorMs, "anchor");
+    } catch (err) {
+      console.warn(`Decision anchor failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    try {
+      await store.setDecisionAnchor(log.id, hash, txHash);
+    } catch (err) {
+      console.warn(`Saving the decision anchor failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    log.anchorHash = hash;
+    if (txHash) log.anchorTx = txHash;
+  }
 
   return { log, newChallenge };
 }

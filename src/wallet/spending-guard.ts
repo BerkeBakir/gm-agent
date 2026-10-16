@@ -14,6 +14,19 @@ export class SpendingLimitError extends Error {
   }
 }
 
+/** Fraction-of-balance daily cap, lowered to what the wallet's on-chain limit still allows (if it has one). */
+export async function dailyBudget(wallet: Wallet, balance: bigint, limits: SpendingLimits): Promise<bigint> {
+  const fractionCap = (balance * BigInt(limits.maxDailyFractionBps)) / 10_000n;
+  if (typeof wallet.availableToday !== "function") return fractionCap;
+  try {
+    const available = await wallet.availableToday();
+    return available < fractionCap ? available : fractionCap;
+  } catch (err) {
+    console.warn(`Could not read the on-chain allowance, using the fraction cap: ${err instanceof Error ? err.message : String(err)}`);
+    return fractionCap;
+  }
+}
+
 /**
  * Every payment goes through here. The LLM decides amounts, but these limits
  * are enforced in code and cannot be talked around.
@@ -32,7 +45,7 @@ export class SpendingGuard {
   async startDay(day: number): Promise<void> {
     const balance = await this.wallet.getBalance();
     this.day = day;
-    this.dailyCap = (balance * BigInt(this.limits.maxDailyFractionBps)) / 10_000n;
+    this.dailyCap = await dailyBudget(this.wallet, balance, this.limits);
     this.spent = 0n;
   }
 

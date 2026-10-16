@@ -135,6 +135,11 @@ export default function Home() {
                     <span className="ml-auto text-muted-foreground">{challenge.participants} played</span>
                   </div>
                   <p className="text-lg leading-snug font-medium">{challenge.question}</p>
+                  {challenge.commitment && (
+                    <p className="font-mono text-[11px] text-muted-foreground" title={challenge.commitment}>
+                      Answer committed: {challenge.commitment.slice(0, 10)}…{challenge.commitment.slice(-6)} · salt revealed when the day closes
+                    </p>
+                  )}
                   <PlayPanel entryFee={game?.rules.entryFee} onSubmitted={loadChallenge} />
                 </>
               )}

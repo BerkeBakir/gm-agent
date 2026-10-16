@@ -29,12 +29,22 @@ export type Decision = {
   adjustments: string[];
   payouts: { player: string; amount: string; txHash?: string; error?: string }[];
   createdAt: string;
+  anchorHash?: string;
+  anchorTx?: string;
 };
 
 export type GameStateResponse = {
-  challenge: { id: string; day: number; difficulty: string; question: string; createdAt: string; participants: number } | null;
-  pastChallenges: { day: number; difficulty: string; question: string; answer: string }[];
-  treasury: { address: string | null; usdc: string | null; eth: string | null };
+  challenge: { id: string; day: number; difficulty: string; question: string; createdAt: string; participants: number; commitment?: string } | null;
+  pastChallenges: { day: number; difficulty: string; question: string; answer: string; commitment?: string; salt?: string; commitmentValid: boolean | null }[];
+  treasury: {
+    mode: "delegated" | "eoa";
+    address: string | null;
+    agent: string | null;
+    owner: string | null;
+    usdc: string | null;
+    eth: string | null;
+    onchainLimit: { dailyLimit: string; availableToday: string | null } | null;
+  };
   rules: { entryFee: string; maxPerTx: string; maxDailyFractionBps: number };
   decisions: Decision[];
   leaderboard: { player: string; wins: number; earned: string }[];

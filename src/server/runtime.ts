@@ -2,19 +2,43 @@
  * Wires the game together from environment variables. Used by API routes and agent tools.
  */
 import { getAgentPrivateKey } from "../../agent/wallet";
+import { makeAnchorSender } from "../chain/anchor";
 import { getGameStore } from "../game";
 import { StaticChallengeAuthor } from "../gm/authors";
 import { GeminiChallengeAuthor, GeminiDecisionMaker, type Persona, PERSONAS } from "../gm/gemini";
 import type { RunDayDeps } from "../gm/run-day";
 import { RuleBasedDecisionMaker } from "../gm/strategies";
 import { BaseSepoliaWallet } from "../wallet/base-sepolia";
+import { DelegatedWallet } from "../wallet/delegated";
 import type { SpendingLimits } from "../wallet/spending-guard";
+import { loadTreasuryConfig } from "../wallet/treasury-config";
 import { parseUsdc } from "../wallet/usdc";
 
-export function getAgentWallet(): BaseSepoliaWallet {
+/** The agent's EOA: signs and pays gas for every tx (payouts, x402 settlement, anchors). */
+export function getTxSender(): BaseSepoliaWallet {
   const key = getAgentPrivateKey();
   if (!key) throw new Error("The agent has no wallet yet (set WALLET_PRIVATE_KEY or click Create wallet).");
   return new BaseSepoliaWallet(key);
+}
+
+/**
+ * The treasury. With treasury/delegation.json present it is the MetaMask smart account,
+ * spendable only through the owner's delegation; otherwise (or TREASURY_MODE=eoa) the agent EOA.
+ */
+export function getAgentWallet(): BaseSepoliaWallet | DelegatedWallet {
+  const sender = getTxSender();
+  const mode = process.env.TREASURY_MODE;
+  if (mode === "eoa") return sender;
+  const config = loadTreasuryConfig();
+  if (!config) {
+    if (mode === "delegated") throw new Error("TREASURY_MODE=delegated but treasury/delegation.json is missing (run npm run treasury:setup).");
+    return sender;
+  }
+  return new DelegatedWallet(config, sender);
+}
+
+export function getTreasuryMode(wallet: BaseSepoliaWallet | DelegatedWallet): "delegated" | "eoa" {
+  return wallet instanceof DelegatedWallet ? "delegated" : "eoa";
 }
 
 export function getLimits(): SpendingLimits {
@@ -43,6 +67,7 @@ export function getRunDayDeps(): RunDayDeps {
     author: hasLlm ? new GeminiChallengeAuthor() : new StaticChallengeAuthor(),
     limits: getLimits(),
     entryFee: getEntryFee(),
+    anchor: process.env.ANCHOR_DECISIONS === "off" ? undefined : makeAnchorSender(getTxSender()),
   };
 }
 

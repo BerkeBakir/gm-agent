@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MockWallet } from "../src/wallet/mock";
 import { SpendingGuard, SpendingLimitError } from "../src/wallet/spending-guard";
 
@@ -57,5 +57,30 @@ describe("SpendingGuard", () => {
     await guard.startDay(1);
     wallet.deposit(100_000_000n);
     expect(guard.remainingToday).toBe(10_000_000n);
+  });
+});
+
+describe("SpendingGuard with an on-chain allowance", () => {
+  const limits = { maxPerTx: 5_000_000n, maxDailyFractionBps: 1_000 };
+
+  it("caps the day at the on-chain allowance when it is below the fraction cap", async () => {
+    const wallet = new MockWallet(100_000_000n);
+    (wallet as MockWallet & { availableToday: () => Promise<bigint> }).availableToday = async () => 1_000_000n;
+    const guard = new SpendingGuard(wallet, limits);
+    await guard.startDay(1);
+    expect(guard.remainingToday).toBe(1_000_000n);
+    await expect(guard.send(PLAYER, 2_000_000n)).rejects.toThrow(SpendingLimitError);
+  });
+
+  it("falls back to the fraction cap when the allowance read throws", async () => {
+    const wallet = new MockWallet(100_000_000n);
+    (wallet as MockWallet & { availableToday: () => Promise<bigint> }).availableToday = async () => {
+      throw new Error("rpc down");
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const guard = new SpendingGuard(wallet, limits);
+    await guard.startDay(1);
+    expect(guard.remainingToday).toBe(10_000_000n);
+    warn.mockRestore();
   });
 });
