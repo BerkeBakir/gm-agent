@@ -45,7 +45,7 @@ so the owner never needs gas.
 ### 1. `scripts/setup-treasury.ts` (`npm run treasury:setup`)
 Idempotent, one-time:
 1. Load or create the owner key (`.treasury-owner.json`).
-2. Build the Hybrid smart account (deploySalt `0x0…01`), deploy it if `getCode` is empty.
+2. Build the Hybrid smart account (deploySalt `0x`), deploy it if `getCode` is empty.
 3. Create and sign the delegation: delegator = smart account, delegate = agent EOA, scope
    `erc20PeriodTransfer { tokenAddress: USDC, periodAmount: 5 USDC, periodDuration: 86400,
    startDate: today 00:00 UTC }`. Amount configurable with `--daily 5`.
@@ -54,9 +54,7 @@ Idempotent, one-time:
    (bigints as strings).
 5. With `--move-funds`, transfer the agent EOA's USDC balance to the smart account.
 
-Extra commands: `--revoke` (owner signs a self-delegation, then the owner EOA redeems it to call
-`DelegationManager.disableDelegation(agentDelegation)` from the smart account; owner needs a little
-ETH, the script says how much) — implemented but not run in prod.
+Revocation (owner self-delegation calling `disableDelegation`) is left for later; the owner key can always sign a new delegation.
 
 ### 2. `src/wallet/delegated.ts` — `DelegatedWallet implements Wallet`
 - `address` = smart account (this is the treasury everyone sees and pays into).
@@ -127,7 +125,7 @@ failure is visible on BaseScan. This is the key scene of the week-3 video.
   in `payouts[].error`, day continues).
 - Missing/invalid `treasury/delegation.json` with `TREASURY_MODE=delegated` → throw at startup with a
   clear message; otherwise fall back to EOA mode.
-- Anchor failure → note in adjustments, day still completes. Anchor runs inside the existing time
+- Anchor failure → warning in the server log; the decision keeps its `anchorHash` without `anchorTx`, day still completes. Anchor runs inside the existing time
   budget (one tx, ~5 s).
 
 ## Testing
