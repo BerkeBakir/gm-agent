@@ -2,6 +2,8 @@
 .env.*
 .agent-wallet.json
 .demo-players.json
+.treasury-owner.json
+.mcp-player.json
 .tmp
 node_modules
 .next

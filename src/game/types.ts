@@ -71,7 +71,7 @@ export interface DecisionLog {
   createdAt: string;
 }
 
-export type NewDecisionLog = Omit<DecisionLog, "id" | "createdAt">;
+export type NewDecisionLog = Omit<DecisionLog, "id" | "createdAt" | "anchorHash" | "anchorTx">;
 
 export function toPublicChallenge({ answer: _a, acceptedAnswers: _b, salt: _s, ...pub }: Challenge): PublicChallenge {
   return pub;

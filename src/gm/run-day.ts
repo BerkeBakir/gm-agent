@@ -195,7 +195,11 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
     } catch (err) {
       console.warn(`Decision anchor failed: ${err instanceof Error ? err.message : String(err)}`);
     }
-    await store.setDecisionAnchor(log.id, hash, txHash);
+    try {
+      await store.setDecisionAnchor(log.id, hash, txHash);
+    } catch (err) {
+      console.warn(`Saving the decision anchor failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
     log.anchorHash = hash;
     if (txHash) log.anchorTx = txHash;
   }
