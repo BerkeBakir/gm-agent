@@ -12,6 +12,7 @@ next-env.d.ts
 .agent-wallet.json
 .demo-players.json
 .mcp-player.json
+.treasury-owner.json
 
 *.db
 *.db-journal

@@ -19,7 +19,9 @@
     "simulate": "tsx scripts/simulate.ts",
     "demo:players": "tsx scripts/demo-players.ts",
     "mcp": "tsx mcp/server.ts",
-    "mcp:setup": "tsx scripts/setup-mcp-player.ts"
+    "mcp:setup": "tsx scripts/setup-mcp-player.ts",
+    "treasury:setup": "tsx scripts/setup-treasury.ts",
+    "treasury:demo": "tsx scripts/limit-demo.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
