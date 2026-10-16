@@ -8,9 +8,10 @@
 import { formatEther } from "viem";
 import { createBaseSepoliaClient, EXPLORER_URL, getEthBalance, getUsdcBalance } from "@/src/chain/base-sepolia";
 import { getGameStore, toPublicChallenge, validateNewChallenge } from "@/src/game";
-import { getEntryFee, getLimits } from "@/src/server/runtime";
+import { getAgentWallet, getEntryFee, getLimits, getTreasuryMode, getTxSender } from "@/src/server/runtime";
+import { DelegatedWallet } from "@/src/wallet/delegated";
 import { formatUsdc } from "@/src/wallet/usdc";
-import { getWalletAddress } from "./wallet";
+import { getAgentPrivateKey } from "./wallet";
 
 export type Tool = {
   name: string;
@@ -116,21 +117,29 @@ export const tools: Tool[] = [
   {
     name: "get_treasury_balance",
     description:
-      "Read the game treasury on-chain: the agent wallet's USDC balance (used for player rewards) and ETH balance " +
-      "(used only for gas) on Base Sepolia testnet.",
+      "Read the game treasury on-chain (Base Sepolia testnet). The treasury is a MetaMask smart account holding the USDC used " +
+      "for player rewards; the agent spends it through a delegation with an on-chain daily limit (onchainDailyLimit, " +
+      "availableToday). The agent's own gas wallet holds ETH, used only for gas.",
     parameters: { type: "object", properties: {} },
     run: async () => {
-      const address = getWalletAddress();
-      if (!address) throw new Error("The agent has no wallet yet.");
+      if (!getAgentPrivateKey()) throw new Error("The agent has no wallet yet.");
+      const wallet = getAgentWallet();
+      const sender = getTxSender();
       const client = createBaseSepoliaClient();
-      const [usdc, eth] = await Promise.all([getUsdcBalance(client, address), getEthBalance(client, address)]);
-      return {
-        address,
+      const [usdc, eth] = await Promise.all([getUsdcBalance(client, wallet.address), getEthBalance(client, sender.address)]);
+      const result: Record<string, unknown> = {
+        treasury: wallet.address,
+        mode: getTreasuryMode(wallet),
         usdc: formatUsdc(usdc),
+        agentGasWallet: sender.address,
         eth: `${formatEther(eth)} ETH`,
-        network: "Base Sepolia (testnet)",
-        explorer: `${EXPLORER_URL}/address/${address}`,
+        explorer: `${EXPLORER_URL}/address/${wallet.address}`,
       };
+      if (wallet instanceof DelegatedWallet) {
+        result.onchainDailyLimit = formatUsdc(wallet.config.dailyLimit);
+        result.availableToday = await wallet.availableToday().then(formatUsdc, () => null);
+      }
+      return result;
     },
   },
 ];

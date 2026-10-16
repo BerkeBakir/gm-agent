@@ -21,7 +21,8 @@
     "mcp": "tsx mcp/server.ts",
     "mcp:setup": "tsx scripts/setup-mcp-player.ts",
     "treasury:setup": "tsx scripts/setup-treasury.ts",
-    "treasury:demo": "tsx scripts/limit-demo.ts"
+    "treasury:demo": "tsx scripts/limit-demo.ts",
+    "treasury:withdraw": "tsx scripts/withdraw-treasury.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

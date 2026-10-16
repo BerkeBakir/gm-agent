@@ -2,7 +2,7 @@ import type { Hex } from "viem";
 import { anchorCalldata, decisionHash } from "../chain/anchor";
 import type { GameStore } from "../game/store";
 import { type Challenge, type DecisionLog, validateNewChallenge } from "../game/types";
-import { SpendingGuard, type SpendingLimits } from "../wallet/spending-guard";
+import { dailyBudget, SpendingGuard, type SpendingLimits } from "../wallet/spending-guard";
 import type { Wallet } from "../wallet/types";
 import { StaticChallengeAuthor } from "./authors";
 import { applyGuardrails } from "./policy";
@@ -64,7 +64,7 @@ export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
     day: challenge?.day ?? 0,
     challenge,
     treasury,
-    dailyBudget: (treasury * BigInt(limits.maxDailyFractionBps)) / 10_000n,
+    dailyBudget: await dailyBudget(wallet, treasury, limits),
     maxPerTx: limits.maxPerTx,
     entryFee: deps.entryFee,
     today: {
