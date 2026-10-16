@@ -80,20 +80,29 @@ Testler (H2 sonu): 79 test (13 dosya), hepsi yeşil. Canlıda 9. gün açık (me
 - Bilinen sorun: Coinbase Wallet canlı siteyi "tehlikeli" işaretliyor (yeni vercel.app domaini + TransferWithAuthorization imzası). Demolar MetaMask veya localhost ile çekilebilir.
 - GitHub MCP eklentisi bu makinede bağlanamıyor; `gh` CLI çalışıyor.
 
-## 6. 3. hafta: aday işler (kapsam eğitim izlendikten sonra kullanıcıyla netleşecek)
+## 6. 3. hafta durumu (16 Ekim): KOD PROD'DA, sırada video + X + teslim
 
-H3 teması "agent'ına cüzdan ver, ödemeyi öğrensin": x402, fon devretme, smart wallet harcama limitleri. GM Agent'ta cüzdan ve x402 zaten var, bu yüzden en doğal ilerleme:
+Kullanıcı eğitim videosunu beklemeden önerilen kapsamı onayladı. PR #8 merge edildi, prod `mode: delegated`.
+Spec: `docs/superpowers/specs/2026-10-16-delegated-treasury-design.md` · plan: `docs/superpowers/plans/2026-10-16-delegated-treasury.md`.
 
-1. **Smart-account kasa + zincir üstü harcama limiti (öneri, tema ile birebir).** Kasa anahtarını env'deki EOA'dan, günlük limitli bir smart account'a ya da delegation'a taşı (ör. MetaMask Delegation Toolkit, Coinbase Smart Wallet / spend permissions). Böylece "günde kasanın %10'u" kuralı kodun dışında, zincirde de geçerli olur. Eğitimdeki "smart wallet: spend limits & rules" ve "delegate $10" örneğiyle aynı fikir.
-2. **Karar logunu zincire sabitleme:** Her günün karar hash'ini Base Sepolia'ya yaz; değiştirilemez muhasebe olur.
-3. **Sponsorlu ödül havuzu:** Herkes x402 ile kasaya katkı yapabilir; GM bunu gelir olarak hesaba katar.
-4. **ZK / commit-reveal cevap taahhüdü:** Bilmece açılırken cevabın hash'i yayınlanır, kapanışta açılır.
+Yapılanlar:
+1. **Smart-account kasa:** MetaMask Hybrid hesap `0xD020dD00a99A8cB0FDDDF2977D365088cb320C8b` (owner `0xAaF7…5478`, anahtar sadece `.treasury-owner.json`'da, Berke'nin makinesinde; Vercel'e asla gitmez). Ajan EOA'sı sadece gas öder; `erc20PeriodTransfer` delegation'ı ile günde en fazla 5 USDC harcar (dönem her gün 11:30 UTC başlar). `treasury/delegation.json` repo'da (herkese açık, güvenli). Vercel prod env: `TREASURY_MODE=delegated`. x402 ücretleri doğrudan akıllı hesaba gider. SpendingGuard zincirdeki kalan limiti de hesaba katar.
+2. **Cevap taahhüdü:** her bilmecede `keccak256(salt, normalize(answer))`; salt kapanışta açılır, sayfada "verified ✓".
+3. **Zincire sabitleme:** her gün sonunda `GMV3 ‖ kararHash ‖ sonrakiTaahhüt` calldata'lı 0-ETH self-tx.
+4. Script'ler: `npm run treasury:setup` · `treasury:demo [-- --send]` (limit aşımı reddi, videonun ana sahnesi) · `treasury:withdraw -- --amount X` (owner acil çekim; ajan gas öder).
 
-README "Future scope" bölümünde bunlar Week 3 olarak listeli; hafta bitince "Done in Week 3" olarak güncelle.
+Canlı kanıt tx'leri: delegation ödemesi `0x1ad1fdc8…`, limit reddi `0x4a1c73b3…` (`ERC20PeriodTransferEnforcer:transfer-amount-exceeded`), owner çekimi `0xf5697188…`, fon taşıma (43.75 USDC) `0x3de237a6…`, ilk anchor `0x0dac09b6…` (yerel).
+
+Notlar: 11. gün yeni kod öncesi açıldı (taahhüt yok); 12. günden itibaren taahhüt + anchor prod'da olmalı, 17 Eki 12:00 UTC cron'undan sonra kontrol et. Public RPC okumaları tx'ten hemen sonra eski değer gösterebiliyor (birkaç sn bekle). Otomatik izin sınıflandırıcısı para hareket ettiren script'leri kullanıcı açık onayı olmadan engelliyor.
+
+Kalan H3 işleri:
+- **Kripto odaklı demo videosu** (senaryo yaz → kullanıcı çeker → sen kes + altyazı göm; `brand/x/week2/` araçları). Ana sahne: `npm run treasury:demo -- --send` + BaseScan'de revert, kasa kartındaki limit çubuğu, taahhüt doğrulama, anchor linki.
+- README `Week 3 (gmagent.v3): <video>` satırı.
+- 3 X gönderisi (@riseinweb3 etiketli, görsel + ≤280 karakter).
+- Sonra (kapsam dışı bırakıldı): eski delegation iptal script'i, sponsorlu havuz, gerçek ZK.
 
 ## 7. Yeni sohbette ilk adımlar
 
 1. `cd "D:\Claude Code\gm-agent" && git fetch && git merge --ff-only origin/main`
-2. Canlıyı kontrol et: `curl -s https://gm-agent-lime.vercel.app/api/state` (açık bilmece var mı, son karar ne zaman?). Vercel'de son 24 saatin hatalarına bak (`get_runtime_errors`).
-3. Kullanıcıdan H3 eğitim videosunu (ekran görüntüleri veya transkript) iste ya da bekle. İnceledikten sonra kapsamı yukarıdaki adaylardan önerip planla.
-4. Hafta sonunda: README `Week 3 (gmagent.v3): <video>`, 3 X gönderisi (görsel + metin), altyazılı video (senaryo → kullanıcı çeker → sen keser, altyazıyı gömersin).
+2. Canlıyı kontrol et: `curl -s https://gm-agent-lime.vercel.app/api/state` → `treasury.mode` "delegated" mı, açık bilmecede `commitment` var mı, son kararda `anchorTx` var mı. Vercel hataları: `get_runtime_errors`.
+3. Video senaryosuyla başla (bkz. 6. bölüm "Kalan H3 işleri").
