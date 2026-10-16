@@ -4,7 +4,8 @@
  *
  * Implementations:
  * - MockWallet: in-memory, used for tests and off-chain simulations
- * - BaseSepoliaWallet (week 3): real on-chain wallet
+ * - BaseSepoliaWallet: plain EOA on Base Sepolia (also the agent's gas/tx sender)
+ * - DelegatedWallet: MetaMask smart account, spent through an on-chain-limited delegation
  */
 export type Address = `0x${string}`;
 
