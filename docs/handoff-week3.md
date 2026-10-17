@@ -95,7 +95,7 @@ Canlı kanıt tx'leri: delegation ödemesi `0x1ad1fdc8…`, limit reddi `0x4a1c7
 
 Notlar: 11. gün yeni kod öncesi açıldı (taahhüt yok); 12. günden itibaren taahhüt + anchor prod'da olmalı, 17 Eki 12:00 UTC cron'undan sonra kontrol et. Public RPC okumaları tx'ten hemen sonra eski değer gösterebiliyor (birkaç sn bekle). Otomatik izin sınıflandırıcısı para hareket ettiren script'leri kullanıcı açık onayı olmadan engelliyor.
 
-Kalan H3 işleri:
+Kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3/video.py` (çıktı: Masaüstü `gm-agent-week3-x/week3-video-senaryo.md` + `week3-subtitles.srt`). Kullanıcı **18 Eki TR 15:00 sonrası** çekecek (ilk "verified ✓" o kapanışta oluşur). Kayıt `C:\Users\Monster\Videos\NVIDIA\Desktop`'a düşer → kes (`brand/x/week2/cut.py` gibi) + SRT'yi drawtext ile göm (`burn.py`) → Masaüstü `gm-agent-week3-x/gm-agent-week3.mp4`. Önce 18 Eki prod kontrolü: 12. gün kapanışında `anchorTx` ve `commitmentValid` var mı.
 - **Kripto odaklı demo videosu** (senaryo yaz → kullanıcı çeker → sen kes + altyazı göm; `brand/x/week2/` araçları). Ana sahne: `npm run treasury:demo -- --send` + BaseScan'de revert, kasa kartındaki limit çubuğu, taahhüt doğrulama, anchor linki.
 - README `Week 3 (gmagent.v3): <video>` satırı.
 - 3 X gönderisi (@riseinweb3 etiketli, görsel + ≤280 karakter).
