@@ -191,8 +191,9 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
 
 ## Demo video
 
-[![GM Agent v2 demo](https://img.youtube.com/vi/eltZ4UOp-ls/hqdefault.jpg)](https://youtu.be/eltZ4UOp-ls)
+[![GM Agent v3 demo](https://img.youtube.com/vi/ppPxUWb2WMA/hqdefault.jpg)](https://youtu.be/ppPxUWb2WMA)
 
+▶️ **Week 3 demo (v3):** https://youtu.be/ppPxUWb2WMA: the treasury moves into a MetaMask smart account, the agent tries to overspend and the chain refuses, plus answer commitments and on-chain decision anchors.
 ▶️ **Week 2 demo (v2):** https://youtu.be/eltZ4UOp-ls: hysteresis in code, and Claude playing via MCP and paying its own x402 entry fee.
 ▶️ **Week 1 demo (v1):** https://youtu.be/1hf2Hj-q76E
 
@@ -200,7 +201,7 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
 
 - Week 1 (gmagent.v1): https://youtu.be/1hf2Hj-q76E
 - Week 2 (gmagent.v2): https://youtu.be/eltZ4UOp-ls
-- Week 3 (gmagent.v3): _coming in Week 3_
+- Week 3 (gmagent.v3): https://youtu.be/ppPxUWb2WMA
 
 Live app: https://gm-agent-lime.vercel.app
 
