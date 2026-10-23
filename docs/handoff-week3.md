@@ -108,7 +108,7 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - H3: 19 Eki'de 3 X gönderisi atıldı ve Rise In'e teslim edildi. Kodda bekleyen iş yok.
 - **Final haftası 24-25 Eki (tweet + video), Demo Day 30 Eki.** Kapsamı kullanıcıyla konuş (bkz. 3. bölüm; ileri işleri kendiliğinden yapma).
 - **Yan iş — Anna Founding Builder Program:** Plan `docs/anna-plan.md` (tek kaynak). Eli'nin 4 cevabı işlendi; **Demo Day'den önce dokunma.** 31 Eki'den itibaren Aşama 0 (Passionfroot TR ödeme kontrolü + Developer Forum sorusu) ile başla.
-- **Yan iş — Najmi/Wasit** (x402 test aracı; "wasit" = Endonezce "hakem", "referee session" = Wasit deneme oturumu): 23 Eki read-only test yapıldı (3 PASS, 2 FAIL, v1 yüzünden), issue açıldı: https://github.com/wasit-dev/Wasit/issues/15 (onay kutuları işaretli). Berke **B seçeneğini** (kendi ekran+ses kaydı, 15-20 dk) seçti: Berke kaydı kendi yapar, sesli düşünür; Claude sadece ölü süreleri keser ve **Berke'nin kendi sözlerinin** transkriptini altyazı olarak gömer (Najmi'ye bildirilir). Kaydı başkası yapmaz, bahane uydurulmaz. Ayrıntı: `docs/wasit-feedback.md` 6. bölüm.
+- **Yan iş — Najmi/Wasit: BİTTİ (23 Eki).** Issue https://github.com/wasit-dev/Wasit/issues/15, kayıt https://youtu.be/RExehgkLQB4 (liste dışı), X https://x.com/GMAgentHQ/status/2113604543871070321. Najmi videoyu kendi playlist'ine **unlisted** yükleyecek, metni onaya gönderecek → gelince kontrol et. Ayrıntı: `docs/wasit-feedback.md`.
 - X, gm-agent-lime.vercel.app linkini "zararlı" diye engelliyor → X gönderilerinde GitHub linki kullan.
 
 ## 7. Yeni sohbette ilk adımlar

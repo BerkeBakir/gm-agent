@@ -140,3 +140,7 @@ Najmi: "wasit" = "hakem"; oturum = Wasit'i denemek. Cüzdan/fon gerekmez. B = sa
 Kayıt dışı hazırlık: sunucuyu başlat (1. bölüm 1. adım) → Operator'dan gün aç (CRON_SECRET girilen kısım kayda girmez) → cmd'de `C:\wasit-test` → rehber sekmesi açık → editör/.env/diğer pencereler kapalı, Windows bildirimleri kapalı.
 
 Kayıt (NVIDIA Alt+F9, mikrofon açık): kısa tanıtım (kim, proje, daha önce asistanla bir kez çalıştırdığın, yerel kopya) → rehberde ilk neye baktığın → komutu çalıştır → her satırı okuyup beklentini/kafa karışıklığını söyle → Fix/Docs linkini aç → kapanış (tekrar kullanır mısın, neyi değiştirirdin). Bitince dosya adı Claude'a → kes + altyazı → YouTube "liste dışı" → link Najmi'ye.
+
+## 7. Teslim (23 Eki)
+
+Kayıt 23 Eki'de yapıldı (finalleri beklemeden). YouTube (liste dışı): https://youtu.be/RExehgkLQB4 · Drive (görüntüleyen): https://drive.google.com/drive/folders/1x5lSV90figX_UVdzHHKcR6_iR-w2GhUs (edited 4:07, raw-blurred 4:41, EDIT-NOTES.txt). Yerel: Masaüstü `wasit-session/`. Najmi'ye cevap: playlist'e yükleyebilir, **unlisted**, "GM Agent" adı kullanılabilir, yayından önce metni onaylatacak. X gönderisi: https://x.com/GMAgentHQ/status/2113604543871070321 (@wasithq etiketli). Najmi mesajı Berke tarafından gönderiliyor → **Wasit işi bitti**; Najmi yayın metnini onaya gönderince bak.
