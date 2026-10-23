@@ -103,8 +103,16 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - 3 X gönderisi (@riseinweb3 etiketli, görsel + ≤280 karakter).
 - Sonra (kapsam dışı bırakıldı): eski delegation iptal script'i, sponsorlu havuz, gerçek ZK.
 
+## 6b. 23 Ekim durumu: H3 TESLİM EDİLDİ, sırada final haftası
+
+- H3: 19 Eki'de 3 X gönderisi atıldı ve Rise In'e teslim edildi. Kodda bekleyen iş yok.
+- **Final haftası 24-25 Eki (tweet + video), Demo Day 30 Eki.** Kapsamı kullanıcıyla konuş (bkz. 3. bölüm; ileri işleri kendiliğinden yapma).
+- **Yan iş — Anna Founding Builder Program:** Plan `docs/anna-plan.md` (tek kaynak). Eli'nin 4 cevabı işlendi; **Demo Day'den önce dokunma.** 31 Eki'den itibaren Aşama 0 (Passionfroot TR ödeme kontrolü + Developer Forum sorusu) ile başla.
+- **Yan iş — Najmi/Wasit** (x402 test aracı, UX geri bildirimi): kullanıcı 23 Eki'de **yardım etmeye karar verdi**. Hazırlık `docs/wasit-feedback.md` (komutlar, beklenen sonuç, issue taslağı). Kalan: Berke read-only testi çalıştırıp çıktıyı yapıştırır → issue tamamlanır. Najmi ayrıca bir "referee session" istiyor; amacı netleşmeden kabul etme, para/anahtar/cüzdan isterse dur.
+- X, gm-agent-lime.vercel.app linkini "zararlı" diye engelliyor → X gönderilerinde GitHub linki kullan.
+
 ## 7. Yeni sohbette ilk adımlar
 
 1. `cd "D:\Claude Code\gm-agent" && git fetch && git merge --ff-only origin/main`
 2. Canlıyı kontrol et: `curl -s https://gm-agent-lime.vercel.app/api/state` → `treasury.mode` "delegated" mı, açık bilmecede `commitment` var mı, son kararda `anchorTx` var mı. Vercel hataları: `get_runtime_errors`.
-3. Video senaryosuyla başla (bkz. 6. bölüm "Kalan H3 işleri").
+3. Final haftası teslimi (24-25 Eki): Rise In görev metnini kullanıcıdan al, kapsamı birlikte belirle (bkz. 6b). Anna işi Demo Day sonrası, `docs/anna-plan.md`.
