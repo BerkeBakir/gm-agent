@@ -1,5 +1,7 @@
 # Wasit geri bildirimi — hazırlık (Najmi / Wasit 0.7.0)
 
+> **24 Eki:** MCP testi de yapıldı (Wasit MCP, read-only, aynı sonuç) → video https://youtu.be/ehdTSoRqbj0 (liste dışı), geri bildirim yorumu https://github.com/wasit-dev/Wasit/issues/15#issuecomment-6384331729 (metin: `docs/wasit-mcp-comment.md`, kesim: `brand/x/wasit-mcp/`). Najmi X alıntısı için izin istedi; issue Links bölümüne CLI videosu eklendi.
+
 > Durum (23 Eki 2026): Berke yardım etmeye karar verdi (önce vazgeçmişti). Her şey hazır; **tek eksik Berke'nin testi çalıştırıp çıktıyı yapıştırması**. Najmi ayrıca bir "referee session" istiyor; ne olduğunu açıklayacak — netleşmeden kabul etme.
 > Wasit paketi doğrulandı: npm `@wasit-dev/cli` (bakımcı `najmiimut`), repo github.com/wasit-dev/Wasit (Stellar Community Fund, SOW 2), postinstall yok.
 > Dikkat: paket `dotenv` kullanıyor → komutu **boş bir klasörde** çalıştır, gm-agent klasöründe asla. Dış paket çalıştırmayı izin sınıflandırıcısı Claude'a vermiyor → komutu Berke çalıştırır.
