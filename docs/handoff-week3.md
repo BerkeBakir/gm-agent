@@ -116,3 +116,10 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 1. `cd "D:\Claude Code\gm-agent" && git fetch && git merge --ff-only origin/main`
 2. Canlıyı kontrol et: `curl -s https://gm-agent-lime.vercel.app/api/state` → `treasury.mode` "delegated" mı, açık bilmecede `commitment` var mı, son kararda `anchorTx` var mı. Vercel hataları: `get_runtime_errors`.
 3. Final haftası teslimi (24-25 Eki): Rise In görev metnini kullanıcıdan al, kapsamı birlikte belirle (bkz. 6b). Anna işi Demo Day sonrası, `docs/anna-plan.md`.
+
+## 8. 24 Ekim: Wasit MCP bitti, Anna kararları verildi
+
+- Wasit: MCP read-only testi yapıldı, video https://youtu.be/ehdTSoRqbj0, yorum https://github.com/wasit-dev/Wasit/issues/15#issuecomment-6384331729. Bekleyen iş yok.
+- **Anna Edition tasarımı onaylandı:** `docs/superpowers/specs/2026-10-24-anna-edition-design.md`. Özet: dünkü kapanmış GM bulmacası (canlı ücretli bulmaca asla), API yoksa Anna llm yedek bulmaca, ipucu (≤3) + "Neden yanlış?", sadece kişisel seri, kod `anna/` klasöründe.
+- **Yeni sohbette Anna için sıra:** (1) Aşama 0: Passionfroot Türkiye ödemesi araştır + Developer Forum sorusunu yaz (Berke gönderir); (2) kullanıcı spec'i okuyup onaylarsa `superpowers:writing-plans` ile uygulama planı; (3) kod Demo Day (30 Eki) sonrası, Aşama 0 olumluysa.
+- Final haftası (24-25 Eki) görev metni hâlâ kullanıcıdan bekleniyor — gelirse öncelik o.

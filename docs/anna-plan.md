@@ -1,6 +1,6 @@
 # GM Agent — Anna Edition planı
 
-> **24 Eki:** Berke planlamayı Demo Day öncesi başlattı; brainstorming 1. soruda durdu: bulmaca kaynağı A (bizim API) / B (Anna llm.complete) / C (karma; öneri). Devam edince oradan sür.
+> **24 Eki:** Kararlar verildi → tasarım `docs/superpowers/specs/2026-10-24-anna-edition-design.md` (tek kaynak). Yeni sohbette: önce Aşama 0 (Passionfroot TR + forum sorusu), sonra writing-plans ile uygulama planı; kod Demo Day sonrası.
 >
 > Güncel durum (23 Eki 2026): Eli (eli@anna.partners) 4 sorumuzu cevapladı (bölüm 3). Karar: **Anna, Demo Day (30 Eki) sonrasına bırakıldı**; final haftası (24-25 Eki) ve Demo Day önce. Diğer yan iş: Najmi/Wasit geri bildirimi (`docs/wasit-feedback.md`).
 
