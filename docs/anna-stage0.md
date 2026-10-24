@@ -41,7 +41,8 @@ Kaynaklar:
 >
 > 1. Can Anna pay by direct bank wire (USD via SWIFT) to a Turkish bank account? Your program post lists "Bank Wire Transfer" as an option.
 > 2. If the payout has to go through Passionfroot instead, is their USD bank transfer enabled for creators in Türkiye? Their terms say creators must be businesses. Can I join as an individual, or would I need a registered company?
-> 3. Is there anything else we'd need for the identity and payment checks (documents, tax forms)?
+> 3. Could the payout be made in crypto instead, for example USDC (on Base or another network) to a wallet address I provide? That would be the simplest option for us.
+> 4. Is there anything else we'd need for the identity and payment checks (documents, tax forms)?
 >
 > Thanks,
 > Berke
