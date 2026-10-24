@@ -1,25 +1,47 @@
-# Anna Edition — Aşama 0 sonuçları (24 Eki 2026)
+# Anna Edition — Aşama 0 sonuçları (24 Eki 2026, detaylı araştırmayla güncellendi)
 
-## 1. Passionfroot Türkiye'ye ödeme yapıyor mu?
+## 1. Ödeme Türkiye'ye ulaşır mı? (detaylı araştırma, 24 Eki)
 
-**Kısa cevap: Belirsiz, büyük ihtimalle tek yol USD banka havalesi.**
+**Kısa cevap: Mümkün görünüyor ama hiçbir yerde yazılı garanti yok. Tek gerçekçi yol USD banka havalesi (SWIFT).**
 
-- Passionfroot üreticilere ödemeyi **Stripe Connect** ile yapıyor. **Stripe Türkiye'de yok** (stripe.com/global listesinde değil; komşulardan Bulgaristan, Yunanistan, Kıbrıs var).
-- Stripe olmayan ülkeler için **"Passionfroot Bank Transfer (USD)"** var: SWIFT ile, sadece USD, fatura Passionfroot GmbH (Berlin) adına kesilir. Hesap ayarı: Account Settings → Payments → Manage payout methods → Bank transfer.
-- Ama yardım sayfası bunu "seçili üreticilere açılıyor" diye anlatıyor; ülke listesi yok. Ara banka ücreti ve kur farkı alıcıya kalıyor.
-- Türk bankası tarafı: USD SWIFT alımı çoğu bankada mümkün; Almanya'dan gelen hizmet geliri için vergi/fatura durumu ayrıca kontrol edilmeli.
+| Kanal | Türkiye'de durum | Kaynak |
+|---|---|---|
+| Stripe | **Yok.** stripe.com/global listesinde değil; Ağustos 2026 tarihli rehberler de "yok" diyor (yalnız ABD LLC gibi yabancı şirketle). | stripe.com/global, startglobal.co, ceaksan.com |
+| PayPal | **Yok.** 2016'dan beri lisanssız, TCMB listelerinde yok, 2026 için dönüş takvimi yok. | sirket.io, startupsole.com |
+| Passionfroot Bank Transfer | **Muhtemelen var, garanti yok.** Stripe olmayan ülkeler için yedek yol; USD, SWIFT kabul eden banka şart; işlemi **Ebury** yapıyor (Ebury 160+ ülkeye, TRY dahil gönderiyor). Ama "seçili üreticilere açılıyor" diyor, ülke listesi yok. | help.passionfroot.me (Getting Paid, FAQs, Terms) |
+| Anna'nın doğrudan banka havalesi | **Mümkün olabilir.** Anna'nın resmi duyurusu ödeme kanallarını "Bank Wire Transfer, PayPal, Stripe, or other agreed channels" diye sayıyor; Passionfroot'tan hiç bahsetmiyor. | forum.anna.partners/t/.../205 |
 
-**Karar (plana göre):** Ödeme net değil → **beklet**. Eli'ye tek soru gönder (aşağıda). Cevap "evet, USD banka havalesiyle ödenir" ise Aşama 1'e geç.
+Ek bulgular:
+- **Passionfroot "girişimci" şartı:** Şartlarında üretici "Alman Medeni Kanunu §14 anlamında girişimci" olmalı (ticari/serbest meslek faaliyeti). Şahıs olarak (şirketsiz) kabul edilip edilmediği belli değil.
+- Havale yolunda fatura Passionfroot GmbH'ye (Berlin) kesilir; Türkiye'de bunun vergi beyanı (hizmet ihracatı) ayrıca düşünülmeli. Anna da "vergi beyanı geliştiricinin sorumluluğunda" diyor.
+- Anna ödemeyi "kimlik doğrulama ve ödeme uyumu"na bağlıyor; yaptırım/kısıtlı ülke listesi yayımlamamış. Türkiye yaptırım listelerinde değil.
+- Türkiye'den Passionfroot kullanan üretici örneği bulunamadı (ne olumlu ne olumsuz kanıt).
+- Hibe ödemesi ayın ölçümünden sonra ~30 gün içinde, USD ya da yerel karşılığı. Gelir paylaşımı ayrı: bakiye 50 USD olunca çekilebiliyor.
 
-Kaynaklar: https://help.passionfroot.me/en/articles/11552849-getting-paid-on-passionfroot · https://stripe.com/global
+**Karar:** Ödeme net değil → **geliştirmeyi beklet**, Eli'ye aşağıdaki soruları sor. Cevap "evet, Türk bankasına USD havale yapılır" ise Aşama 1.
+
+Kaynaklar:
+- https://help.passionfroot.me/en/articles/11552849-getting-paid-on-passionfroot
+- https://help.passionfroot.me/en/articles/11552873-faqs
+- https://help.passionfroot.me/en/articles/11552627-day-1-with-passionfroot
+- https://help.passionfroot.me/en/articles/11570199-terms-conditions
+- https://forum.anna.partners/t/turn-your-ai-agents-apps-into-recurring-monthly-grants-join-the-anna-ai-os-founding-builder-program-up-to-80k-month-pool/205
+- https://stripe.com/global · https://startglobal.co/us/international/turkey/stripe/
+- https://www.sirket.io/blog/paypal-turkiye · https://ebury.com/resources/currencies
 
 ### Eli'ye e-posta (Berke gönderir, eli@anna.partners)
 
-> Subject: Payout question before we start building
+> Subject: Payout to Türkiye: quick check before we build
 >
 > Hi Eli,
 >
-> Thanks again for the detailed answers. One last check before we start building our Anna app: I'm based in Türkiye, where Stripe isn't available. If our app qualifies for the Founding Builder reward, can the payout go through Passionfroot Bank Transfer (USD via SWIFT) to a Turkish bank account? If there's another route, that works too, I just want to be sure the payout can reach me before we commit the time.
+> Thanks again for the detailed answers. One last check before we commit time to our Anna app.
+>
+> I'm based in Türkiye, where neither Stripe nor PayPal is available. If the app qualifies for a grant (or revenue share):
+>
+> 1. Can Anna pay by direct bank wire (USD via SWIFT) to a Turkish bank account? Your program post lists "Bank Wire Transfer" as an option.
+> 2. If the payout has to go through Passionfroot instead, is their USD bank transfer enabled for creators in Türkiye? Their terms say creators must be businesses. Can I join as an individual, or would I need a registered company?
+> 3. Is there anything else we'd need for the identity and payment checks (documents, tax forms)?
 >
 > Thanks,
 > Berke
