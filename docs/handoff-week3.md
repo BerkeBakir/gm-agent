@@ -126,6 +126,7 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 
 ## 9. 24 Ekim (GM Agent #7): Aşama 0 yazıldı
 
+- **Eli e-postası 24 Eki'de gönderildi** (doğrudan havale / Passionfroot / kripto ödeme / belgeler). Forum sorusu henüz gönderilmedi.
 - `docs/anna-stage0.md`: Passionfroot sonucu (Stripe Türkiye'de yok → tek yol USD SWIFT banka havalesi, "seçili üreticilere" açılıyor, garanti yok → **beklet**), Eli'ye e-posta taslağı ve Developer Forum sorusu (İngilizce). İkisini de Berke gönderecek.
 - Sıra: Eli + forum cevapları gelince go/no-go kararı ver. Olumluysa spec onayı → `superpowers:writing-plans`. Kod Demo Day (30 Eki) sonrası.
 - Final haftası görev metni hâlâ bekleniyor; gelirse öncelik o.
