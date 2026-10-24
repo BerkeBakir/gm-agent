@@ -123,3 +123,9 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - **Anna Edition tasarımı onaylandı:** `docs/superpowers/specs/2026-10-24-anna-edition-design.md`. Özet: dünkü kapanmış GM bulmacası (canlı ücretli bulmaca asla), API yoksa Anna llm yedek bulmaca, ipucu (≤3) + "Neden yanlış?", sadece kişisel seri, kod `anna/` klasöründe.
 - **Yeni sohbette Anna için sıra:** (1) Aşama 0: Passionfroot Türkiye ödemesi araştır + Developer Forum sorusunu yaz (Berke gönderir); (2) kullanıcı spec'i okuyup onaylarsa `superpowers:writing-plans` ile uygulama planı; (3) kod Demo Day (30 Eki) sonrası, Aşama 0 olumluysa.
 - Final haftası (24-25 Eki) görev metni hâlâ kullanıcıdan bekleniyor — gelirse öncelik o.
+
+## 9. 24 Ekim (GM Agent #7): Aşama 0 yazıldı
+
+- `docs/anna-stage0.md`: Passionfroot sonucu (Stripe Türkiye'de yok → tek yol USD SWIFT banka havalesi, "seçili üreticilere" açılıyor, garanti yok → **beklet**), Eli'ye e-posta taslağı ve Developer Forum sorusu (İngilizce). İkisini de Berke gönderecek.
+- Sıra: Eli + forum cevapları gelince go/no-go kararı ver. Olumluysa spec onayı → `superpowers:writing-plans`. Kod Demo Day (30 Eki) sonrası.
+- Final haftası görev metni hâlâ bekleniyor; gelirse öncelik o.
