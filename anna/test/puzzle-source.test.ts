@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { BANK, bankPuzzle } from "../src/bank";
-import { fetchArchive, generateFallback, loadPuzzles, parseArchive, parsePuzzleJson } from "../src/puzzle-source";
+import { FALLBACK_TIMEOUT_MS, fetchArchive, generateFallback, loadPuzzles, parseArchive, parsePuzzleJson } from "../src/puzzle-source";
 import type { Complete, KV } from "../src/types";
 
 const archiveJson = {
@@ -67,6 +67,13 @@ describe("generateFallback", () => {
       throw new Error("quota");
     };
     expect(await generateFallback(throwing, "2026-10-29")).toEqual(bankPuzzle("2026-10-29"));
+  });
+  it("falls to the bank when the LLM hangs past the timeout", async () => {
+    const hanging: Complete = () => new Promise<string>(() => {});
+    expect(await generateFallback(hanging, "2026-10-29", { timeoutMs: 20 })).toEqual(bankPuzzle("2026-10-29"));
+  });
+  it("exports a 15 s default timeout", () => {
+    expect(FALLBACK_TIMEOUT_MS).toBe(15000);
   });
 });
 

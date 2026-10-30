@@ -46,14 +46,23 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
   let feedback: { kind: "ok" | "bad" | "note"; text: string } | null = null;
   let lastWrongGuess: string | null = null;
   let busy = false;
+  let draft = "";
+  let inputEl: HTMLInputElement | null = null;
+  let refocus = false;
 
   async function persist() {
     if (!(await saveProgress(deps.kv, progress))) storageNote = true;
   }
 
   function render() {
-    root.replaceChildren(header(), tabs(), tab === "today" ? puzzleCard(current) : archiveList(), footer());
-    storageNote = false;
+    inputEl = null;
+    const parts: Node[] = [header()];
+    if (storageNote) parts.push(el("div", { className: "note" }, "Progress can't be saved right now."));
+    parts.push(tabs(), tab === "today" ? puzzleCard(current) : archiveList(), footer());
+    storageNote = false; // shown once, on whichever tab is visible
+    root.replaceChildren(...parts);
+    if (refocus && inputEl) (inputEl as HTMLInputElement).focus();
+    refocus = false;
   }
 
   function header() {
@@ -81,6 +90,7 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
     current = p;
     feedback = null;
     lastWrongGuess = null;
+    draft = "";
     render();
   }
 
@@ -91,14 +101,17 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       p.source === "gm" ? `GM puzzle · day ${p.day}${p.difficulty ? ` · ${p.difficulty}` : ""}` : "Puzzle from Anna";
     const card = el("div", { className: "card" }, el("div", { className: "meta" }, isToday ? `Today · ${source}` : source));
     if (isToday && puzzles.offline) card.append(el("div", { className: "note" }, "The GM is offline, so here's a puzzle from Anna."));
-    if (storageNote) card.append(el("div", { className: "note" }, "Progress can't be saved right now."));
     card.append(el("div", { className: "question" }, p.question));
 
     if (rec.solved) {
       card.append(el("div", { className: "ok" }, `Solved! +${rec.score} points. The answer: ${p.answer}`));
       if (isVerified(p)) card.append(el("div", { className: "note" }, "verified ✓ This answer matches the commitment the GM published before the puzzle opened."));
     } else {
-      const input = el("input", { placeholder: "Your answer", maxLength: 80, autocomplete: "off" });
+      const input = el("input", { placeholder: "Your answer", maxLength: 80, autocomplete: "off", value: draft });
+      input.oninput = () => {
+        draft = input.value;
+      };
+      inputEl = input;
       const form = el("form", {}, input, el("button", { type: "submit", disabled: busy }, "Guess"));
       form.onsubmit = (e) => {
         e.preventDefault();
@@ -157,20 +170,25 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       feedback = { kind: "bad", text: `"${value.trim()}" isn't it.` };
       lastWrongGuess = value.trim();
     }
-    render();
+    draft = "";
     await persist();
+    refocus = true;
+    render();
   }
 
   async function hint(p: Puzzle) {
     busy = true;
     render();
     try {
-      progress = addHint(progress, p.key, await getHint(deps.complete, p, recordOf(progress, p.key).hints));
+      const text = await getHint(deps.complete, p, recordOf(progress, p.key).hints);
+      progress = addHint(progress, p.key, text);
+      feedback = null;
       await persist();
     } catch {
       feedback = { kind: "note", text: BUSY };
     } finally {
       busy = false;
+      refocus = true;
       render();
     }
   }

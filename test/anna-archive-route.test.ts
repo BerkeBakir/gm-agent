@@ -66,4 +66,24 @@ describe("GET /api/anna/archive", () => {
     expect(pre.status).toBe(204);
     expect(pre.headers.get("access-control-allow-origin")).toBe("*");
   });
+
+  it("returns 503 with CORS and no-store when the store fails", async () => {
+    vi.doMock("@/src/game", () => ({
+      getGameStore: () => ({
+        listChallenges: async () => {
+          throw new Error("db down");
+        },
+      }),
+    }));
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { GET } = await import("../app/api/anna/archive/route");
+    const res = await GET();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "unavailable" });
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+    vi.doUnmock("@/src/game");
+  });
 });

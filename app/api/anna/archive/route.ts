@@ -16,7 +16,13 @@ const CORS = {
 };
 
 export async function GET() {
-  const recent = await getGameStore().listChallenges(MAX_PUZZLES + 1);
+  let recent;
+  try {
+    recent = await getGameStore().listChallenges(MAX_PUZZLES + 1);
+  } catch (err) {
+    console.error("anna archive: store failed", err);
+    return Response.json({ error: "unavailable" }, { status: 503, headers: { ...CORS, "Cache-Control": "no-store" } });
+  }
   const puzzles = recent
     .filter((c) => c.status === "closed")
     .slice(0, MAX_PUZZLES)

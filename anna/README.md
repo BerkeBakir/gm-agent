@@ -18,6 +18,7 @@ npx vitest run anna/test
 
 ## Publish (Berke)
 ```bash
+npm run anna:validate   # from the repo root; builds app.js
 cd anna
 npx -y @anna-ai/cli@latest login --host https://anna.partners
 npx -y @anna-ai/cli@latest apps push --bundle-dir bundle

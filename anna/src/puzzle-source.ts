@@ -62,16 +62,33 @@ const FALLBACK_SYSTEM =
   '{"question": string, "answer": string, "acceptedAnswers": string[]}. ' +
   "The answer is one or two common English words; acceptedAnswers lists other correct forms (e.g. with 'a').";
 
-export async function generateFallback(complete: Complete, date: string): Promise<Puzzle> {
+export const FALLBACK_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("llm timeout")), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
+
+export async function generateFallback(
+  complete: Complete,
+  date: string,
+  opts: { timeoutMs?: number } = {},
+): Promise<Puzzle> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const parsed = parsePuzzleJson(
-        await complete({
-          system: FALLBACK_SYSTEM,
-          user: `Write the riddle for ${date}. Medium difficulty, 2-4 short lines, ends with "What am I?"`,
-          maxTokens: 300,
-          temperature: 0.9,
-        }),
+        await withTimeout(
+          complete({
+            system: FALLBACK_SYSTEM,
+            user: `Write the riddle for ${date}. Medium difficulty, 2-4 short lines, ends with "What am I?"`,
+            maxTokens: 300,
+            temperature: 0.9,
+          }),
+          opts.timeoutMs ?? FALLBACK_TIMEOUT_MS,
+        ),
       );
       if (parsed) return { key: `anna-${date}`, source: "anna", ...parsed };
     } catch {
