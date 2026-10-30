@@ -25,3 +25,7 @@ logs/
 AGENTS.md
 CLAUDE.md
 .superpowers/
+
+# Anna app build output
+anna/bundle/app.js
+anna/.anna/

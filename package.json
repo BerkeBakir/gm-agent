@@ -22,7 +22,10 @@
     "mcp:setup": "tsx scripts/setup-mcp-player.ts",
     "treasury:setup": "tsx scripts/setup-treasury.ts",
     "treasury:demo": "tsx scripts/limit-demo.ts",
-    "treasury:withdraw": "tsx scripts/withdraw-treasury.ts"
+    "treasury:withdraw": "tsx scripts/withdraw-treasury.ts",
+    "anna:build": "esbuild anna/src/main.ts --bundle --format=esm --target=es2022 --minify --outfile=anna/bundle/app.js",
+    "anna:validate": "npm run anna:build && cd anna && npx -y @anna-ai/cli@latest validate --strict --bundle bundle",
+    "anna:dev": "npm run anna:build && cd anna && npx -y @anna-ai/cli@latest dev --bundle bundle --no-llm"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -46,6 +49,7 @@
     "@types/node": "^24.19.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
