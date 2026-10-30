@@ -151,3 +151,12 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - Code: `anna/` + `GET /api/anna/archive` (closed puzzles only, CORS *). Tests: `npx vitest run anna/test`.
 - Waiting on Berke: Anna account (Stage 1), `anna-app login`, `apps push`, review submission. Listing copy: `anna/LISTING.md`.
 - Next: launch plan `docs/anna-launch.md` (goal ≥ 200 MAU in one calendar month).
+
+### 12b. 30 Oct status: merged to main (PR #16, merge 9d32569)
+
+- All 9 plan tasks done with subagent-driven development; per-task reviews + final whole-branch review (Opus) + 2 fix rounds. 168 tests, `next build` OK, `anna validate --strict` OK.
+- Local harness: `npm run anna:dev` (needs `uv`; installed 30 Oct with `pip install --user uv`). Port 5180. `--no-llm`, so hints show the "GM is busy" message there. Root `D:\Claude Code\.claude\launch.json` has an `anna-dev` entry.
+- Progress ledger (all deferred Minor findings): `.superpowers/sdd/progress.md` (git-ignored, local only).
+- **Open product decision (Berke):** "Today" = newest closed GM puzzle. A user who already solved it and returns the next local day before the 12:00 UTC close has nothing to solve for the streak. Option: if today's GM puzzle was solved on an earlier day, offer the Anna/bank puzzle as the streak puzzle.
+- Deferred minors: Today tab stays highlighted while an archive puzzle is open; `isProgress` guard is shallow; `@anna-ai/cli@latest` is unpinned; bank puzzle is labelled "Puzzle from Anna".
+- **Berke's next steps:** (1) anna.partners account + email verification + Developer ToS (browser). (2) PowerShell: `cd "D:\Claude Code\gm-agent"`, `npm run anna:validate`, `cd anna`, `npx -y @anna-ai/cli@latest login --host https://anna.partners`. (3) Tell Claude → Claude runs `apps push`, a real-LLM test in `anna dev`, and takes listing screenshots. (4) Paste `anna/LISTING.md` into the Developer Console and submit for review. Also: forum question (`docs/anna-stage0.md` §2). Before posting X drafts (`brand/x/anna/posts.md`), check the `@AnnaOS` handle.
