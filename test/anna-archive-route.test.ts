@@ -76,14 +76,17 @@ describe("GET /api/anna/archive", () => {
       }),
     }));
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { GET } = await import("../app/api/anna/archive/route");
-    const res = await GET();
-    expect(res.status).toBe(503);
-    expect(await res.json()).toEqual({ error: "unavailable" });
-    expect(res.headers.get("access-control-allow-origin")).toBe("*");
-    expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(err).toHaveBeenCalled();
-    err.mockRestore();
-    vi.doUnmock("@/src/game");
+    try {
+      const { GET } = await import("../app/api/anna/archive/route");
+      const res = await GET();
+      expect(res.status).toBe(503);
+      expect(await res.json()).toEqual({ error: "unavailable" });
+      expect(res.headers.get("access-control-allow-origin")).toBe("*");
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(err).toHaveBeenCalled();
+    } finally {
+      err.mockRestore();
+      vi.doUnmock("@/src/game");
+    }
   });
 });

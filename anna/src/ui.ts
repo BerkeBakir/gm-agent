@@ -171,9 +171,10 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       lastWrongGuess = value.trim();
     }
     draft = "";
-    await persist();
     refocus = true;
     render();
+    await persist();
+    if (storageNote) render(); // save failed: show the note (once)
   }
 
   async function hint(p: Puzzle) {
@@ -203,6 +204,7 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       feedback = { kind: "note", text: BUSY };
     } finally {
       busy = false;
+      refocus = true;
       render();
     }
   }
