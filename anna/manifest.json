@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "tags": ["game", "puzzle", "riddle", "daily"],
+  "ui": {
+    "bundle": {
+      "format": "static-spa",
+      "entry": "index.html",
+      "external_origins": ["https://gm-agent-lime.vercel.app"]
+    },
+    "views": [
+      {
+        "name": "main",
+        "title": "GM Daily Riddle",
+        "icon": "icon.svg",
+        "default": true,
+        "default_size": { "w": 420, "h": 640 },
+        "min_size": { "w": 340, "h": 480 },
+        "resizable": true,
+        "single_instance": true
+      }
+    ],
+    "host_api": {
+      "llm": ["complete"],
+      "storage": ["get", "set"]
+    }
+  }
+}

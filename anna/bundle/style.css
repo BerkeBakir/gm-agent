@@ -1,0 +1,29 @@
+:root { --bg: #0f1115; --card: #181b22; --text: #e8eaf0; --muted: #9aa3b2; --accent: #7c5cff; --ok: #2fbf71; --bad: #e5484d; }
+:root[data-theme="light"] { --bg: #f6f7fb; --card: #ffffff; --text: #151821; --muted: #5d6576; --accent: #5b3df5; --ok: #1f9d5c; --bad: #d13438; }
+@media (prefers-color-scheme: light) { :root:not([data-theme]) { --bg: #f6f7fb; --card: #ffffff; --text: #151821; --muted: #5d6576; --accent: #5b3df5; --ok: #1f9d5c; --bad: #d13438; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.app { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.top { display: flex; justify-content: space-between; align-items: center; }
+.title { font-weight: 700; font-size: 17px; }
+.streak { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; gap: 6px; }
+.tabs button { flex: 1; }
+.card { background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.meta { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.question { font-size: 16px; white-space: pre-wrap; }
+.note { color: var(--muted); font-size: 12px; }
+form { display: flex; gap: 6px; }
+input { flex: 1; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--muted); background: transparent; color: var(--text); font: inherit; }
+button { padding: 9px 12px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font: inherit; cursor: pointer; }
+button.ghost { background: transparent; color: var(--text); border: 1px solid var(--muted); }
+button:disabled { opacity: .45; cursor: default; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+.ok { color: var(--ok); font-weight: 600; }
+.bad { color: var(--bad); }
+ol.hints { margin: 0; padding-left: 20px; }
+.archive { display: flex; flex-direction: column; gap: 6px; }
+.archive button { text-align: left; background: var(--card); color: var(--text); border: 1px solid transparent; }
+.archive button.done { border-color: var(--ok); }
+a { color: var(--accent); }
+.footer { color: var(--muted); font-size: 12px; text-align: center; }
