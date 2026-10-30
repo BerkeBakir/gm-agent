@@ -25,7 +25,8 @@
     "treasury:withdraw": "tsx scripts/withdraw-treasury.ts",
     "anna:build": "esbuild anna/src/main.ts --bundle --format=esm --target=es2022 --minify --outfile=anna/bundle/app.js",
     "anna:validate": "npm run anna:build && cd anna && npx -y @anna-ai/cli@latest validate --strict --bundle bundle",
-    "anna:dev": "npm run anna:build && cd anna && npx -y @anna-ai/cli@latest dev --bundle bundle --no-llm"
+    "anna:dev": "npm run anna:build && cd anna && npx -y @anna-ai/cli@latest dev --bundle bundle --no-llm",
+    "anna:dev:llm": "npm run anna:build && cd anna && npx -y @anna-ai/cli@latest dev --bundle bundle"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
