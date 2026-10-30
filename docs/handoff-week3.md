@@ -160,3 +160,10 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - **Open product decision (Berke):** "Today" = newest closed GM puzzle. A user who already solved it and returns the next local day before the 12:00 UTC close has nothing to solve for the streak. Option: if today's GM puzzle was solved on an earlier day, offer the Anna/bank puzzle as the streak puzzle.
 - Deferred minors: Today tab stays highlighted while an archive puzzle is open; `isProgress` guard is shallow; `@anna-ai/cli@latest` is unpinned; bank puzzle is labelled "Puzzle from Anna".
 - **Berke's next steps:** (1) anna.partners account + email verification + Developer ToS (browser). (2) PowerShell: `cd "D:\Claude Code\gm-agent"`, `npm run anna:validate`, `cd anna`, `npx -y @anna-ai/cli@latest login --host https://anna.partners`. (3) Tell Claude → Claude runs `apps push`, a real-LLM test in `anna dev`, and takes listing screenshots. (4) Paste `anna/LISTING.md` into the Developer Console and submit for review. Also: forum question (`docs/anna-stage0.md` §2). Before posting X drafts (`brand/x/anna/posts.md`), check the `@AnnaOS` handle.
+
+### 12c. 30 Oct: Anna draft pushed and tested with the real LLM
+
+- Developer handle `gm-agent`; app `gm-daily-riddle` (app_id 764), working draft rev 1 pushed (category `entertainment`; Anna has no `games`). CLI login PAT in `~/.config/anna/credentials.json` (~90 days).
+- Real-LLM harness: `npm run anna:dev:llm` (port 5180). Verified: day 23 GM puzzle from prod, 3 hints with no leak, why-wrong, correct answer → "verified ✓", streak 1, archive 22.
+- Listing screenshots: Desktop `gm-agent-anna-listing/` (1-today, 2-hints, 3-solved-verified, 4-archive).
+- Berke's remaining steps: `apps cut 0.1.0` (the auto classifier blocked Claude from running it), then submit for review (`apps submit-review gm-daily-riddle` or the Console), paste `anna/LISTING.md` into the listing, upload the screenshots.
