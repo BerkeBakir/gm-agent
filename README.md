@@ -188,6 +188,7 @@ The economic decision maker also supports three personas (`GM_PERSONA`): `balanc
 - 🔁 **Resilient** — Gemini retries + model fallback + per-call timeouts, rule-based fallback when no LLM is
   available, and self-recovery if a day-close is ever interrupted.
 - 🧪 **Tested & simulated** — unit tests for every money path and a 30-day economy simulator.
+- **Anna Edition** (`anna/`): a free, wallet-free daily riddle app for the Anna app store, with AI hints and streaks, fed by the GM's closed puzzles via `GET /api/anna/archive`.
 
 ## Demo video
 

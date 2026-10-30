@@ -145,3 +145,9 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - Planlama sırasında doğrulananlar (anna.partners/developers): `llm.complete` = `{systemPrompt, messages, maxTokens}` → `{content:{text}}`; `storage.get/set` = `{key[,value]}` → `{value, exists}`; RPC'ler hem çıplak sonuç hem `{ok,result}` dönebiliyor; uygulama `allow-same-origin`'siz sandbox iframe'de çalışıyor (origin `null`), bu yüzden `/api/anna/archive` CORS `*`. CLI: `npx @anna-ai/cli` (`init`, `validate --strict`, `dev --no-llm`, `apps push`).
 - Berke'nin işleri: forum sorusunu göndermek (metin `docs/anna-stage0.md` §2), Anna hesabı + Developer ToS, `anna-app login` (Task 8).
 - Kapanan konular: Wasit v1 cevabı yazılmayacak; Demo Day boşverildi; Devcon'a gidilmiyor (bilet iade edildi); Top 5 X gönderisi atıldı.
+
+## 12. Anna Edition built (plan: docs/superpowers/plans/2026-10-29-anna-edition.md)
+
+- Code: `anna/` + `GET /api/anna/archive` (closed puzzles only, CORS *). Tests: `npx vitest run anna/test`.
+- Waiting on Berke: Anna account (Stage 1), `anna-app login`, `apps push`, review submission. Listing copy: `anna/LISTING.md`.
+- Next: launch plan `docs/anna-launch.md` (goal ≥ 200 MAU in one calendar month).
