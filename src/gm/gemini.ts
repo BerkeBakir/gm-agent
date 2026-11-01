@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { isCorrectAnswer } from "../game/answers";
 import { DIFFICULTIES, type Difficulty, type NewChallenge } from "../game/types";
 import { generateWithFallback } from "../llm/gemini";
+import { findRepeat, type RecentPuzzle } from "./repeat-guard";
 import type { ChallengeAuthor, Decision, DecisionMaker, GameState } from "./types";
 
 export const PERSONAS = {
@@ -121,26 +122,35 @@ export class GeminiDecisionMaker implements DecisionMaker {
 /**
  * The production challenge author: Gemini writes a fresh puzzle with a private answer key,
  * then a separate Gemini call solves it blind. If the solver's answer doesn't match the key,
- * the puzzle is probably ambiguous or wrong, so it is regenerated (up to 3 drafts).
+ * the puzzle is probably ambiguous or wrong, so it is regenerated (up to 3 drafts). A draft that
+ * repeats a recent question or answer is regenerated too.
  */
 export class GeminiChallengeAuthor implements ChallengeAuthor {
-  /** Drafts rejected by the solver check during the last author() call, for the decision log. */
+  /** Drafts rejected (solver check or repeat) during the last author() call, for the decision log. */
   rejected: string[] = [];
 
-  async author(difficulty: Difficulty, avoid: string[]): Promise<NewChallenge> {
+  async author(difficulty: Difficulty, recent: RecentPuzzle[]): Promise<NewChallenge> {
     this.rejected = [];
+    const drafts: RecentPuzzle[] = [];
     let last: NewChallenge | null = null;
     for (let i = 0; i < 3; i++) {
-      const draft = await this.draft(difficulty, [...avoid, ...this.rejected]);
+      const draft = await this.draft(difficulty, [...drafts, ...recent]);
       last = draft;
+      drafts.unshift(draft);
+      // A repeat of a recent puzzle is regenerated without spending a solver call on it.
+      if (findRepeat(draft, recent)) {
+        this.rejected.push(draft.question);
+        continue;
+      }
       const solved = await solveBlind(draft.question);
       if (isCorrectAnswer(solved, draft)) return draft;
       this.rejected.push(draft.question);
     }
-    throw new Error(`no unambiguous puzzle after 3 drafts (last: "${last?.question}")`);
+    throw new Error(`no fresh, unambiguous puzzle after 3 drafts (last: "${last?.question}")`);
   }
 
-  private async draft(difficulty: Difficulty, avoid: string[]): Promise<NewChallenge> {
+  private async draft(difficulty: Difficulty, avoid: RecentPuzzle[]): Promise<NewChallenge> {
+    const answers = [...new Set(avoid.map((p) => p.answer))];
     const prompt = [
       `Write one ORIGINAL ${difficulty} riddle or logic puzzle for a daily puzzle game.`,
       "Requirements: exactly one correct answer, 1-3 words or a number; solvable without special knowledge; in English;",
@@ -149,7 +159,8 @@ export class GeminiChallengeAuthor implements ChallengeAuthor {
       "keys that can't open locks, the towel, the echo, footsteps, a candle, a shadow, 'what has a neck but no head').",
       "Good sources of fresh puzzles: small number/logic puzzles, word puzzles with a twist, everyday objects described from an unusual angle.",
       "Difficulty guide: easy = most adults solve it in a minute; medium = needs some thought; hard = a real logic/maths/lateral-thinking challenge.",
-      avoid.length ? `Do NOT reuse or closely paraphrase these recent puzzles:\n- ${avoid.slice(0, 14).join("\n- ")}` : "",
+      avoid.length ? `Do NOT reuse or closely paraphrase these recent puzzles:\n- ${avoid.map((p) => p.question).join("\n- ")}` : "",
+      answers.length ? `The answer must also differ from these recent answers: ${answers.join(", ")}` : "",
     ].join("\n");
 
     const res = await generateWithFallback(client(), {

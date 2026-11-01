@@ -12,7 +12,7 @@ function state(overrides: Partial<GameState> = {}): GameState {
     entryFee: 100_000n,
     today: { participants: 10, winners: 4, winRate: 0.4, income: 1_000_000n },
     history: [],
-    recentQuestions: [],
+    recentPuzzles: [],
     targetWinRate: { min: 0.3, max: 0.5 },
     ...overrides,
   };

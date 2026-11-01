@@ -1,4 +1,5 @@
 import type { Challenge, Difficulty, NewChallenge } from "../game/types";
+import type { RecentPuzzle } from "./repeat-guard";
 
 /** Summary of a finished game day, taken from the decision log. */
 export interface DaySummary {
@@ -26,7 +27,8 @@ export interface GameState {
   today: { participants: number; winners: number; winRate: number | null; income: bigint };
   /** Previous days, newest first. */
   history: DaySummary[];
-  recentQuestions: string[];
+  /** Latest puzzles (newest first, including the one being closed). The next one must not repeat them. */
+  recentPuzzles: RecentPuzzle[];
   targetWinRate: { min: number; max: number };
 }
 
@@ -44,5 +46,6 @@ export interface DecisionMaker {
 
 /** Writes the next challenge. Gemini in production; a static bank in tests/simulations. */
 export interface ChallengeAuthor {
-  author(difficulty: Difficulty, avoid: string[]): Promise<NewChallenge>;
+  /** `recent` is newest first; the new puzzle must not repeat any of their questions or answers. */
+  author(difficulty: Difficulty, recent: RecentPuzzle[]): Promise<NewChallenge>;
 }
