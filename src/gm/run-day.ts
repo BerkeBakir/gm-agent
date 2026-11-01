@@ -6,6 +6,7 @@ import { dailyBudget, SpendingGuard, type SpendingLimits } from "../wallet/spend
 import type { Wallet } from "../wallet/types";
 import { StaticChallengeAuthor } from "./authors";
 import { applyGuardrails } from "./policy";
+import { findRepeat, REPEAT_WINDOW } from "./repeat-guard";
 import { RuleBasedDecisionMaker } from "./strategies";
 import type { ChallengeAuthor, Decision, DecisionMaker, GameState } from "./types";
 
@@ -55,7 +56,7 @@ export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
     store.getCurrentChallenge(),
     wallet.getBalance(),
     store.listDecisions(7),
-    store.listChallenges(14),
+    store.listChallenges(REPEAT_WINDOW),
   ]);
   const submissions = challenge ? await store.getSubmissions(challenge.id) : [];
   const winners = submissions.filter((s) => s.correct).length;
@@ -85,7 +86,12 @@ export async function buildGameState(deps: RunDayDeps): Promise<GameState> {
         treasuryAfter: d.treasuryAfter,
         nextDifficulty: d.nextDifficulty,
       })),
-    recentQuestions: recent.map((c) => c.question),
+    recentPuzzles: recent.map((c) => ({
+      day: c.day,
+      question: c.question,
+      answer: c.answer,
+      ...(c.acceptedAnswers && { acceptedAnswers: c.acceptedAnswers }),
+    })),
     targetWinRate: deps.targetWinRate ?? DEFAULT_TARGET,
   };
 }
@@ -156,15 +162,19 @@ export async function runDay(deps: RunDayDeps): Promise<DayReport> {
     }
   }
 
-  // Publish the next challenge.
+  // Publish the next challenge. It must not repeat a recent question or answer, whoever wrote it.
   let next;
   try {
     next = validateNewChallenge(
-      await withTimeout(deps.author.author(decision.nextDifficulty, state.recentQuestions), timeouts.authorMs, "challenge author"),
+      await withTimeout(deps.author.author(decision.nextDifficulty, state.recentPuzzles), timeouts.authorMs, "challenge author"),
     );
+    const repeat = findRepeat(next, state.recentPuzzles);
+    if (repeat) throw new Error(`its puzzle ${repeat.reason}`);
   } catch (err) {
     notes.push(`challenge author failed (${err instanceof Error ? err.message : String(err)}); used puzzle bank`);
-    next = await new StaticChallengeAuthor().author(decision.nextDifficulty, state.recentQuestions);
+    next = await new StaticChallengeAuthor().author(decision.nextDifficulty, state.recentPuzzles);
+    const repeat = findRepeat(next, state.recentPuzzles);
+    if (repeat) notes.push(`puzzle bank has no unused ${decision.nextDifficulty} puzzle; reused the least recently used one (${repeat.reason})`);
   }
   const newChallenge = await store.createChallenge(next);
 
