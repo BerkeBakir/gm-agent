@@ -24,3 +24,7 @@ npx -y @anna-ai/cli@latest login --host https://anna.partners
 npx -y @anna-ai/cli@latest apps push --bundle-dir bundle
 ```
 Then submit the version for review in the Developer Console. Review takes 3–5 business days.
+
+## Changelog
+- **0.1.1** — If the newest GM puzzle was solved on an earlier day, today's streak puzzle is a bonus from Anna (the GM puzzle moves to the archive). Manifest declares `permissions` (llm.complete, storage.read/write). The Archive tab, not Today, is highlighted while an archive puzzle is open.
+- **0.1.0** — First release.

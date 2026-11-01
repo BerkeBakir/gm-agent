@@ -20,7 +20,12 @@ export interface AppDeps {
   today: () => string;
 }
 
-const REPO_URL = "https://github.com/BerkeBakir/gm-agent";
+/** Which tab looks selected: an open archive puzzle belongs to Archive, not Today. */
+export function activeTab(tab: "today" | "archive", currentKey: string, todayKey: string): "today" | "archive" {
+  return tab === "today" && currentKey === todayKey ? "today" : "archive";
+}
+
+const REPO_URL ="https://github.com/BerkeBakir/gm-agent";
 const BUSY = "The GM is busy, try again later.";
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -39,7 +44,7 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
   let progress: Progress = loaded.progress;
   /** Show "can't save" once after a storage failure, then hide it until the next failure. */
   let storageNote = !loaded.ok;
-  const puzzles: LoadedPuzzles = await loadPuzzles({ fetchImpl: deps.fetchImpl, complete: deps.complete, kv: deps.kv, today });
+  const puzzles: LoadedPuzzles = await loadPuzzles({ fetchImpl: deps.fetchImpl, complete: deps.complete, kv: deps.kv, today, progress });
 
   let tab: "today" | "archive" = "today";
   let current: Puzzle = puzzles.today;
@@ -76,10 +81,11 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
   }
 
   function tabs() {
-    const todayBtn = el("button", { className: tab === "today" ? "" : "ghost", onclick: () => switchTo(puzzles.today) }, "Today");
+    const active = activeTab(tab, current.key, puzzles.today.key);
+    const todayBtn = el("button", { className: active === "today" ? "" : "ghost", onclick: () => switchTo(puzzles.today) }, "Today");
     const archBtn = el(
       "button",
-      { className: tab === "archive" ? "" : "ghost", disabled: puzzles.archive.length === 0, onclick: () => ((tab = "archive"), render()) },
+      { className: active === "archive" ? "" : "ghost", disabled: puzzles.archive.length === 0, onclick: () => ((tab = "archive"), render()) },
       `Archive (${puzzles.archive.length})`,
     );
     return el("div", { className: "tabs" }, todayBtn, archBtn);
@@ -101,6 +107,11 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       p.source === "gm" ? `GM puzzle · day ${p.day}${p.difficulty ? ` · ${p.difficulty}` : ""}` : "Puzzle from Anna";
     const card = el("div", { className: "card" }, el("div", { className: "meta" }, isToday ? `Today · ${source}` : source));
     if (isToday && puzzles.offline) card.append(el("div", { className: "note" }, "The GM is offline, so here's a puzzle from Anna."));
+    if (isToday && puzzles.bonus) {
+      card.append(
+        el("div", { className: "note" }, "You already solved the GM's latest puzzle. Here's a bonus from Anna to keep your streak; the next GM puzzle opens at 12:00 UTC."),
+      );
+    }
     card.append(el("div", { className: "question" }, p.question));
 
     if (rec.solved) {

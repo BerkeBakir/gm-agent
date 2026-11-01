@@ -1,4 +1,5 @@
 import { bankPuzzle } from "./bank";
+import { type Progress, recordOf } from "./progress";
 import type { Complete, KV, Puzzle } from "./types";
 
 export const ARCHIVE_URL = "https://gm-agent-lime.vercel.app/api/anna/archive";
@@ -108,25 +109,50 @@ export interface LoadedPuzzles {
   archive: Puzzle[];
   /** True when GM's API was unreachable and today's puzzle came from Anna or the bank. */
   offline: boolean;
+  /** True when the newest GM puzzle was already solved on an earlier day, so today's is a bonus from Anna. */
+  bonus: boolean;
 }
 
-export async function loadPuzzles(deps: {
+interface LoadDeps {
   fetchImpl: typeof fetch;
   complete: Complete;
   kv: KV;
   today: string;
   timeoutMs?: number;
-}): Promise<LoadedPuzzles> {
+  progress?: Progress;
+}
+
+async function cachedFallback(deps: LoadDeps): Promise<Puzzle | null> {
+  const cached = await deps.kv.get(`${FALLBACK_PREFIX}${deps.today}`).catch(() => undefined);
+  return isPuzzle(cached) ? cached : null;
+}
+
+/** A new Anna/bank puzzle for today, cached so it stays the same all day. */
+async function newFallback(deps: LoadDeps): Promise<Puzzle> {
+  const puzzle = await generateFallback(deps.complete, deps.today);
+  await deps.kv.set(`${FALLBACK_PREFIX}${deps.today}`, puzzle).catch(() => undefined);
+  return puzzle;
+}
+
+export async function loadPuzzles(deps: LoadDeps): Promise<LoadedPuzzles> {
+  let list: Puzzle[] = [];
   try {
-    const list = await fetchArchive(deps.fetchImpl, { timeoutMs: deps.timeoutMs });
-    if (list.length > 0) return { today: list[0], archive: list.slice(1), offline: false };
+    list = await fetchArchive(deps.fetchImpl, { timeoutMs: deps.timeoutMs });
   } catch {
     // fall through to the offline path
   }
-  const cacheKey = `${FALLBACK_PREFIX}${deps.today}`;
-  const cached = await deps.kv.get(cacheKey).catch(() => undefined);
-  if (isPuzzle(cached)) return { today: cached, archive: [], offline: true };
-  const puzzle = await generateFallback(deps.complete, deps.today);
-  await deps.kv.set(cacheKey, puzzle).catch(() => undefined);
-  return { today: puzzle, archive: [], offline: true };
+  if (list.length === 0) {
+    return { today: (await cachedFallback(deps)) ?? (await newFallback(deps)), archive: [], offline: true, bonus: false };
+  }
+
+  const [latest, ...older] = list;
+  if (deps.progress && recordOf(deps.progress, latest.key).solved) {
+    // Solved with no streak today yet means it was solved on an earlier day. A solved
+    // cached fallback means today's bonus was already played, so keep showing it.
+    const cached = await cachedFallback(deps);
+    if (deps.progress.lastStreakDate !== deps.today || (cached && recordOf(deps.progress, cached.key).solved)) {
+      return { today: cached ?? (await newFallback(deps)), archive: list, offline: false, bonus: true };
+    }
+  }
+  return { today: latest, archive: older, offline: false, bonus: false };
 }

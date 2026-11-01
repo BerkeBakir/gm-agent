@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:memory", "--", "-p", "3005"],
       "port": 3005
+    },
+    {
+      "name": "anna-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "anna:dev"],
+      "port": 5180
     }
   ]
 }
