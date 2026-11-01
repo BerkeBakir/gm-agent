@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { BANK, bankPuzzle } from "../src/bank";
 import { FALLBACK_TIMEOUT_MS, fetchArchive, generateFallback, loadPuzzles, parseArchive, parsePuzzleJson } from "../src/puzzle-source";
+import { emptyProgress, type Progress } from "../src/progress";
 import type { Complete, KV } from "../src/types";
 
 const archiveJson = {
@@ -122,5 +123,74 @@ describe("loadPuzzles", () => {
     };
     const r = await loadPuzzles({ fetchImpl: downFetch, complete: async () => goodJson, kv: broken, today: "2026-10-29" });
     expect(r.today.answer).toBe("River");
+  });
+});
+
+describe("loadPuzzles bonus puzzle for the streak", () => {
+  const solvedGm20 = (lastStreakDate: string): Progress => ({
+    ...emptyProgress(),
+    streak: 1,
+    lastStreakDate,
+    history: { "gm-20": { hints: [], wrongGuesses: 0, solved: true, score: 100 } },
+  });
+
+  it("offers an Anna puzzle when the newest GM puzzle was solved on an earlier day", async () => {
+    const complete = vi.fn<Complete>(async () => goodJson);
+    const r = await loadPuzzles({
+      fetchImpl: okFetch(archiveJson),
+      complete,
+      kv: memoryKV(),
+      today: "2026-10-30",
+      progress: solvedGm20("2026-10-29"),
+    });
+    expect(r).toMatchObject({ offline: false, bonus: true });
+    expect(r.today.key).toBe("anna-2026-10-30");
+    expect(r.archive.map((p) => p.key)).toEqual(["gm-20", "gm-19"]);
+  });
+  it("keeps the solved GM puzzle as today's when it was solved today", async () => {
+    const complete = vi.fn<Complete>(async () => goodJson);
+    const r = await loadPuzzles({
+      fetchImpl: okFetch(archiveJson),
+      complete,
+      kv: memoryKV(),
+      today: "2026-10-29",
+      progress: solvedGm20("2026-10-29"),
+    });
+    expect(r).toMatchObject({ bonus: false });
+    expect(r.today.key).toBe("gm-20");
+    expect(complete).not.toHaveBeenCalled();
+  });
+  it("keeps the same bonus puzzle after it is solved and the app reopens", async () => {
+    const kv = memoryKV();
+    const complete = vi.fn<Complete>(async () => goodJson);
+    const deps = { fetchImpl: okFetch(archiveJson), complete, kv, today: "2026-10-30" };
+    const first = await loadPuzzles({ ...deps, progress: solvedGm20("2026-10-29") });
+    // The bonus solve moves the streak to today; the bonus must stay "today".
+    const afterSolve = solvedGm20("2026-10-30");
+    afterSolve.history[first.today.key] = { hints: [], wrongGuesses: 0, solved: true, score: 100 };
+    const second = await loadPuzzles({ ...deps, progress: afterSolve });
+    expect(second.today).toEqual(first.today);
+    expect(second.bonus).toBe(true);
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+  it("ignores an unsolved offline puzzle cached earlier today once the GM puzzle is solved today", async () => {
+    const kv = memoryKV();
+    const complete = vi.fn<Complete>(async () => goodJson);
+    await loadPuzzles({ fetchImpl: downFetch, complete, kv, today: "2026-10-29" });
+    const r = await loadPuzzles({ fetchImpl: okFetch(archiveJson), complete, kv, today: "2026-10-29", progress: solvedGm20("2026-10-29") });
+    expect(r).toMatchObject({ bonus: false });
+    expect(r.today.key).toBe("gm-20");
+  });
+  it("goes back to the GM puzzle once a new one is out", async () => {
+    const next = { puzzles: [{ day: 21, question: "Q21?", answer: "Map", acceptedAnswers: [] }, ...archiveJson.puzzles] };
+    const r = await loadPuzzles({
+      fetchImpl: okFetch(next),
+      complete: vi.fn(),
+      kv: memoryKV(),
+      today: "2026-10-30",
+      progress: solvedGm20("2026-10-29"),
+    });
+    expect(r).toMatchObject({ bonus: false });
+    expect(r.today.key).toBe("gm-21");
   });
 });

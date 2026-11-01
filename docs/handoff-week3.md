@@ -168,3 +168,9 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - Listing screenshots: Desktop `gm-agent-anna-listing/` (1-today, 2-hints, 3-solved-verified, 4-archive).
 - Berke's remaining steps: `apps cut 0.1.0` (the auto classifier blocked Claude from running it), then submit for review (`apps submit-review gm-daily-riddle` or the Console), paste `anna/LISTING.md` into the listing, upload the screenshots.
 - 30 Oct (later): listing filled (logo + screenshots hosted under `anna/listing/`, raw GitHub URLs), v0.1.0 cut and **submitted for review (pending_review)**. Tested inside real Anna (installed app): day 24 GM puzzle loads, real-LLM hint works, solve gives "verified ✓", progress survives close/reopen. Manifest now also declares `permissions` (llm.complete, storage.read/write) in the working draft (rev 2); not in v0.1.0, not needed so far — ship with the next version. Approval publishes immediately (no `apps release` needed).
+
+### 12d. 2 Nov: v0.1.1 prepared (PR #17, branch `feat/anna-v0.1.1`), NOT pushed to Anna
+- Bonus streak puzzle: if the newest GM puzzle was solved on an earlier day (solved + `lastStreakDate !== today`), "Today" is a cached Anna/bank bonus (`fallback/<date>`), GM puzzle moves to the archive. Archive tab is highlighted while an archive puzzle is open (`activeTab`). Manifest `permissions` (already on main since 108e02e) ship with this version.
+- 176/176 tests, tsc clean, `anna:validate` OK, harness-checked (bonus flow seeded with a temporary build).
+- Publish only after v0.1.0 is approved: merge PR #17 → `npm run anna:validate` → `cd anna` → `apps push --bundle-dir bundle` → `apps cut 0.1.1` → submit for review.
+- Found in passing: prod archive days 24 and 25 are the same riddle (answer "darkness") — GM puzzle generation repeated itself.
