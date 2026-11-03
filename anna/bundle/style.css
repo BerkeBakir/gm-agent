@@ -26,4 +26,8 @@ ol.hints { margin: 0; padding-left: 20px; }
 .archive button { text-align: left; background: var(--card); color: var(--text); border: 1px solid transparent; }
 .archive button.done { border-color: var(--ok); }
 a { color: var(--accent); }
-.footer { color: var(--muted); font-size: 12px; text-align: center; }
+button.small { padding: 4px 10px; font-size: 12px; }
+.note.row { align-items: center; justify-content: space-between; flex-wrap: nowrap; }
+.about { font-size: 14px; }
+.decision { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--muted) 30%, transparent); font-size: 14px; }
+.decision-head { font-weight: 600; }

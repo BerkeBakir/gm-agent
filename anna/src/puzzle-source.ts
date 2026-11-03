@@ -2,8 +2,14 @@ import { bankPuzzle } from "./bank";
 import { type Progress, recordOf } from "./progress";
 import type { Complete, KV, Puzzle } from "./types";
 
-export const ARCHIVE_URL = "https://gm-agent-lime.vercel.app/api/anna/archive";
+/** Tried in order. The custom domain comes first: *.vercel.app is unreachable from some networks. */
+export const ARCHIVE_URLS = [
+  "https://gm.notvia.app/api/anna/archive",
+  "https://gm-agent-lime.vercel.app/api/anna/archive",
+];
 const FALLBACK_PREFIX = "fallback/";
+/** The last archive response that had puzzles, used when the GM can't be reached. */
+export const ARCHIVE_CACHE_KEY = "archive/last";
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 const isHex = (v: unknown): v is `0x${string}` => typeof v === "string" && /^0x[0-9a-fA-F]+$/.test(v);
@@ -29,19 +35,70 @@ export function parseArchive(json: unknown): Puzzle[] {
   return out;
 }
 
+/** One GM decision from the daily log (testnet USDC amounts are preformatted strings). */
+export interface GmDecision {
+  day: number;
+  participants: number;
+  winners: number;
+  winRate: number | null;
+  rewardPerWinner: string;
+  totalPaid: string;
+  treasuryAfter: string;
+  nextDifficulty: string;
+  reasoning: string;
+  anchorTx: string | null;
+}
+
+export function parseDecisions(json: unknown): GmDecision[] {
+  const rows = (json as { decisions?: unknown })?.decisions;
+  if (!Array.isArray(rows)) return [];
+  const out: GmDecision[] = [];
+  for (const r of rows as Record<string, unknown>[]) {
+    if (typeof r?.day !== "number" || !isStr(r.reasoning)) continue;
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+    out.push({
+      day: r.day,
+      participants: num(r.participants),
+      winners: num(r.winners),
+      winRate: typeof r.winRate === "number" ? r.winRate : null,
+      rewardPerWinner: isStr(r.rewardPerWinner) ? r.rewardPerWinner : "",
+      totalPaid: isStr(r.totalPaid) ? r.totalPaid : "",
+      treasuryAfter: isStr(r.treasuryAfter) ? r.treasuryAfter : "",
+      nextDifficulty: isStr(r.nextDifficulty) ? r.nextDifficulty : "",
+      reasoning: r.reasoning,
+      anchorTx: isHex(r.anchorTx) ? r.anchorTx : null,
+    });
+  }
+  return out;
+}
+
+/** Raw archive JSON from the first URL that answers; throws the last error if none does. */
+export async function fetchArchiveJson(
+  fetchImpl: typeof fetch,
+  opts: { urls?: string[]; timeoutMs?: number } = {},
+): Promise<unknown> {
+  let lastErr: unknown = new Error("no archive URL");
+  for (const url of opts.urls ?? ARCHIVE_URLS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 5000);
+    try {
+      const res = await fetchImpl(url, { signal: ctrl.signal });
+      if (!res.ok) throw new Error(`archive HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      lastErr = err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastErr;
+}
+
 export async function fetchArchive(
   fetchImpl: typeof fetch,
-  opts: { url?: string; timeoutMs?: number } = {},
+  opts: { urls?: string[]; timeoutMs?: number } = {},
 ): Promise<Puzzle[]> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 5000);
-  try {
-    const res = await fetchImpl(opts.url ?? ARCHIVE_URL, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`archive HTTP ${res.status}`);
-    return parseArchive(await res.json());
-  } finally {
-    clearTimeout(timer);
-  }
+  return parseArchive(await fetchArchiveJson(fetchImpl, opts));
 }
 
 export function parsePuzzleJson(text: string): { question: string; answer: string; acceptedAnswers: string[] } | null {
@@ -107,8 +164,12 @@ function isPuzzle(v: unknown): v is Puzzle {
 export interface LoadedPuzzles {
   today: Puzzle;
   archive: Puzzle[];
+  /** The GM's latest decisions, newest first (may be empty). */
+  decisions: GmDecision[];
   /** True when GM's API was unreachable and today's puzzle came from Anna or the bank. */
   offline: boolean;
+  /** True when GM's API was unreachable and the GM puzzles come from the last saved copy. */
+  stale: boolean;
   /** True when the newest GM puzzle was already solved on an earlier day, so today's is a bonus from Anna. */
   bonus: boolean;
 }
@@ -119,6 +180,7 @@ interface LoadDeps {
   kv: KV;
   today: string;
   timeoutMs?: number;
+  urls?: string[];
   progress?: Progress;
 }
 
@@ -134,15 +196,27 @@ async function newFallback(deps: LoadDeps): Promise<Puzzle> {
   return puzzle;
 }
 
-export async function loadPuzzles(deps: LoadDeps): Promise<LoadedPuzzles> {
-  let list: Puzzle[] = [];
+/** Live archive if reachable (and saved for later), else the last saved copy. */
+async function archiveData(deps: LoadDeps): Promise<{ list: Puzzle[]; decisions: GmDecision[]; stale: boolean }> {
   try {
-    list = await fetchArchive(deps.fetchImpl, { timeoutMs: deps.timeoutMs });
+    const json = await fetchArchiveJson(deps.fetchImpl, { urls: deps.urls, timeoutMs: deps.timeoutMs });
+    const list = parseArchive(json);
+    if (list.length > 0) {
+      await deps.kv.set(ARCHIVE_CACHE_KEY, json).catch(() => undefined);
+      return { list, decisions: parseDecisions(json), stale: false };
+    }
   } catch {
-    // fall through to the offline path
+    // fall through to the saved copy
   }
+  const saved = await deps.kv.get(ARCHIVE_CACHE_KEY).catch(() => undefined);
+  return { list: parseArchive(saved), decisions: parseDecisions(saved), stale: true };
+}
+
+export async function loadPuzzles(deps: LoadDeps): Promise<LoadedPuzzles> {
+  const { list, decisions, stale } = await archiveData(deps);
   if (list.length === 0) {
-    return { today: (await cachedFallback(deps)) ?? (await newFallback(deps)), archive: [], offline: true, bonus: false };
+    const today = (await cachedFallback(deps)) ?? (await newFallback(deps));
+    return { today, archive: [], decisions, offline: true, stale: false, bonus: false };
   }
 
   const [latest, ...older] = list;
@@ -151,8 +225,8 @@ export async function loadPuzzles(deps: LoadDeps): Promise<LoadedPuzzles> {
     // cached fallback means today's bonus was already played, so keep showing it.
     const cached = await cachedFallback(deps);
     if (deps.progress.lastStreakDate !== deps.today || (cached && recordOf(deps.progress, cached.key).solved)) {
-      return { today: cached ?? (await newFallback(deps)), archive: list, offline: false, bonus: true };
+      return { today: cached ?? (await newFallback(deps)), archive: list, decisions, offline: false, stale, bonus: true };
     }
   }
-  return { today: latest, archive: older, offline: false, bonus: false };
+  return { today: latest, archive: older, decisions, offline: false, stale, bonus: false };
 }

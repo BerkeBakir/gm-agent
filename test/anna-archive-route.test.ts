@@ -67,6 +67,57 @@ describe("GET /api/anna/archive", () => {
     expect(pre.headers.get("access-control-allow-origin")).toBe("*");
   });
 
+  it("includes the GM's latest decisions, newest first, without player addresses", async () => {
+    const store = await seed(2);
+    for (const day of [1, 2]) {
+      await store.addDecision({
+        day,
+        challengeId: null,
+        treasuryBefore: 10_000_000n,
+        treasuryAfter: 9_500_000n,
+        participants: 4,
+        winners: 2,
+        winRate: 0.5,
+        income: 400_000n,
+        rewardPerWinner: 450_000n,
+        totalPaid: 900_000n,
+        nextDifficulty: "hard",
+        decidedBy: "gemini",
+        reasoning: `Day ${day}: win rate at the top of the band, so harder next.`,
+        adjustments: [],
+        payouts: [{ player: "0x1111111111111111111111111111111111111111", amount: 450_000n, txHash: "0xabc" }],
+      });
+    }
+    const { GET } = await import("../app/api/anna/archive/route");
+    const body = await (await GET()).json();
+    expect(body.decisions.map((d: { day: number }) => d.day)).toEqual([2, 1]);
+    expect(body.decisions[0]).toMatchObject({
+      day: 2,
+      participants: 4,
+      winners: 2,
+      winRate: 0.5,
+      rewardPerWinner: "0.45 USDC",
+      totalPaid: "0.90 USDC",
+      treasuryAfter: "9.50 USDC",
+      nextDifficulty: "hard",
+      decidedBy: "gemini",
+      reasoning: "Day 2: win rate at the top of the band, so harder next.",
+      anchorTx: null,
+    });
+    expect(JSON.stringify(body)).not.toContain("0x1111");
+  });
+
+  it("still returns puzzles when the decision log fails", async () => {
+    const store = await seed(2);
+    store.listDecisions = async () => {
+      throw new Error("log down");
+    };
+    const { GET } = await import("../app/api/anna/archive/route");
+    const body = await (await GET()).json();
+    expect(body.puzzles).toHaveLength(1);
+    expect(body.decisions).toEqual([]);
+  });
+
   it("returns 503 with CORS and no-store when the store fails", async () => {
     vi.doMock("@/src/game", () => ({
       getGameStore: () => ({
