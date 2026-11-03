@@ -10,7 +10,7 @@ import {
   recordSolve,
 } from "./progress";
 import { loadProgress, saveProgress } from "./progress-store";
-import { loadPuzzles, type LoadedPuzzles } from "./puzzle-source";
+import { type GmDecision, loadPuzzles, type LoadedPuzzles } from "./puzzle-source";
 import type { Complete, KV, Puzzle } from "./types";
 
 export interface AppDeps {
@@ -20,13 +20,16 @@ export interface AppDeps {
   today: () => string;
 }
 
+type Tab = "today" | "archive" | "gm";
+
 /** Which tab looks selected: an open archive puzzle belongs to Archive, not Today. */
-export function activeTab(tab: "today" | "archive", currentKey: string, todayKey: string): "today" | "archive" {
-  return tab === "today" && currentKey === todayKey ? "today" : "archive";
+export function activeTab(tab: Tab, currentKey: string, todayKey: string): Tab {
+  return tab === "today" && currentKey !== todayKey ? "archive" : tab;
 }
 
 const REPO_URL ="https://github.com/BerkeBakir/gm-agent";
 const BUSY = "The GM is busy, try again later.";
+const TX_URL = "https://sepolia.basescan.org/tx/";
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -44,9 +47,10 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
   let progress: Progress = loaded.progress;
   /** Show "can't save" once after a storage failure, then hide it until the next failure. */
   let storageNote = !loaded.ok;
-  const puzzles: LoadedPuzzles = await loadPuzzles({ fetchImpl: deps.fetchImpl, complete: deps.complete, kv: deps.kv, today, progress });
+  const load = () => loadPuzzles({ fetchImpl: deps.fetchImpl, complete: deps.complete, kv: deps.kv, today, progress });
+  let puzzles: LoadedPuzzles = await load();
 
-  let tab: "today" | "archive" = "today";
+  let tab: Tab = "today";
   let current: Puzzle = puzzles.today;
   let feedback: { kind: "ok" | "bad" | "note"; text: string } | null = null;
   let lastWrongGuess: string | null = null;
@@ -63,7 +67,7 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
     inputEl = null;
     const parts: Node[] = [header()];
     if (storageNote) parts.push(el("div", { className: "note" }, "Progress can't be saved right now."));
-    parts.push(tabs(), tab === "today" ? puzzleCard(current) : archiveList(), footer());
+    parts.push(tabs(), tab === "today" ? puzzleCard(current) : tab === "archive" ? archiveList() : gmLog());
     storageNote = false; // shown once, on whichever tab is visible
     root.replaceChildren(...parts);
     if (refocus && inputEl) (inputEl as HTMLInputElement).focus();
@@ -88,7 +92,8 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       { className: active === "archive" ? "" : "ghost", disabled: puzzles.archive.length === 0, onclick: () => ((tab = "archive"), render()) },
       `Archive (${puzzles.archive.length})`,
     );
-    return el("div", { className: "tabs" }, todayBtn, archBtn);
+    const gmBtn = el("button", { className: active === "gm" ? "" : "ghost", onclick: () => ((tab = "gm"), render()) }, "GM's log");
+    return el("div", { className: "tabs" }, todayBtn, archBtn, gmBtn);
   }
 
   function switchTo(p: Puzzle) {
@@ -106,7 +111,11 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
     const source =
       p.source === "gm" ? `GM puzzle · day ${p.day}${p.difficulty ? ` · ${p.difficulty}` : ""}` : "Puzzle from Anna";
     const card = el("div", { className: "card" }, el("div", { className: "meta" }, isToday ? `Today · ${source}` : source));
-    if (isToday && puzzles.offline) card.append(el("div", { className: "note" }, "The GM is offline, so here's a puzzle from Anna."));
+    if (isToday && puzzles.offline) {
+      card.append(connectionNote("Couldn't reach the GM's server just now, so today's riddle comes from Anna. It still counts for your streak."));
+    } else if (isToday && puzzles.stale) {
+      card.append(connectionNote("Couldn't reach the GM's server just now, so these are the GM's puzzles from your last visit."));
+    }
     if (isToday && puzzles.bonus) {
       card.append(
         el("div", { className: "note" }, "You already solved the GM's latest puzzle. Here's a bonus from Anna to keep your streak; the next GM puzzle opens at 12:00 UTC."),
@@ -161,13 +170,65 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
     return el("div", { className: "card" }, el("div", { className: "meta" }, "Older GM puzzles · score only, no streak"), list);
   }
 
-  function footer() {
-    return el(
+  function connectionNote(text: string) {
+    return el("div", { className: "note row" }, text, el("button", { className: "ghost small", disabled: busy, onclick: () => void retry() }, "Retry"));
+  }
+
+  function gmLog() {
+    const card = el(
       "div",
-      { className: "footer" },
-      "Want real USDC prizes? ",
-      el("a", { href: REPO_URL, target: "_blank", rel: "noopener noreferrer" }, "Play GM Agent"),
+      { className: "card" },
+      el("div", { className: "meta" }, "How the GM works"),
+      el(
+        "div",
+        { className: "about" },
+        "GM Agent is an autonomous AI game master. Every day it writes a new riddle, publishes a cryptographic commitment to the answer before the riddle opens, " +
+          "and closes the round at 12:00 UTC. Then it looks at how many players solved it, decides the reward and the next day's difficulty to keep about " +
+          "30–50% of players winning, and logs its reasoning. Its paid version runs on the Base Sepolia testnet (test USDC, no real money); this Anna edition is free.",
+      ),
     );
+    if (puzzles.decisions.length === 0) {
+      card.append(el("div", { className: "note" }, "The GM's log isn't available right now."));
+    } else {
+      card.append(el("div", { className: "meta" }, "The GM's latest decisions"), ...puzzles.decisions.map(decisionItem));
+    }
+    card.append(el("div", { className: "note" }, el("a", { href: REPO_URL, target: "_blank", rel: "noopener noreferrer" }, "Source code on GitHub")));
+    return card;
+  }
+
+  function decisionItem(d: GmDecision) {
+    const rate = d.winRate === null ? "no players" : `${d.winners} of ${d.participants} solved (${Math.round(d.winRate * 100)}%)`;
+    const money = [
+      d.winners > 0 && d.rewardPerWinner && `${d.rewardPerWinner} per winner`,
+      d.treasuryAfter && `treasury ${d.treasuryAfter} (testnet)`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const item = el(
+      "div",
+      { className: "decision" },
+      el("div", { className: "decision-head" }, `Day ${d.day} · ${rate}`),
+      el("div", { className: "note" }, [money, d.nextDifficulty && `next: ${d.nextDifficulty}`].filter(Boolean).join(" · ")),
+      el("div", {}, d.reasoning),
+    );
+    if (d.anchorTx) {
+      item.append(el("a", { className: "note", href: TX_URL + d.anchorTx, target: "_blank", rel: "noopener noreferrer" }, "Decision logged on-chain ↗"));
+    }
+    return item;
+  }
+
+  async function retry() {
+    busy = true;
+    render();
+    try {
+      puzzles = await load();
+      current = puzzles.today;
+      feedback = null;
+      lastWrongGuess = null;
+    } finally {
+      busy = false;
+      render();
+    }
   }
 
   async function guess(p: Puzzle, value: string) {

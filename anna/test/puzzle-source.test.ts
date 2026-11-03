@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { BANK, bankPuzzle } from "../src/bank";
-import { FALLBACK_TIMEOUT_MS, fetchArchive, generateFallback, loadPuzzles, parseArchive, parsePuzzleJson } from "../src/puzzle-source";
+import {
+  ARCHIVE_CACHE_KEY,
+  ARCHIVE_URLS,
+  FALLBACK_TIMEOUT_MS,
+  fetchArchive,
+  generateFallback,
+  loadPuzzles,
+  parseArchive,
+  parseDecisions,
+  parsePuzzleJson,
+} from "../src/puzzle-source";
 import { emptyProgress, type Progress } from "../src/progress";
 import type { Complete, KV } from "../src/types";
 
@@ -192,5 +202,57 @@ describe("loadPuzzles bonus puzzle for the streak", () => {
     });
     expect(r).toMatchObject({ bonus: false });
     expect(r.today.key).toBe("gm-21");
+  });
+});
+
+describe("reaching the GM", () => {
+  const decision = {
+    day: 20,
+    participants: 8,
+    winners: 3,
+    winRate: 0.375,
+    rewardPerWinner: "0.45 USDC",
+    totalPaid: "1.35 USDC",
+    treasuryAfter: "9.50 USDC",
+    nextDifficulty: "hard",
+    decidedBy: "gemini",
+    reasoning: "Win rate in band; keep rewards steady.",
+    anchorTx: "0xabc123",
+  };
+
+  it("tries the custom domain first, then vercel.app", async () => {
+    expect(ARCHIVE_URLS[0]).not.toContain("vercel.app");
+    const seen: string[] = [];
+    const fetchImpl = vi.fn(async (url: string) => {
+      seen.push(url);
+      if (url === "https://a.test/x") throw new TypeError("blocked");
+      return new Response(JSON.stringify(archiveJson), { status: 200 });
+    }) as unknown as typeof fetch;
+    const list = await fetchArchive(fetchImpl, { urls: ["https://a.test/x", "https://b.test/x"] });
+    expect(seen).toEqual(["https://a.test/x", "https://b.test/x"]);
+    expect(list).toHaveLength(2);
+  });
+
+  it("parses decisions and drops malformed ones", () => {
+    const out = parseDecisions({ decisions: [decision, { day: "x" }, { day: 3 }] });
+    const { decidedBy: _unused, ...expected } = decision;
+    expect(out).toEqual([expected]);
+    expect(parseDecisions(null)).toEqual([]);
+  });
+
+  it("saves the live archive and shows it (stale) when the GM is unreachable later", async () => {
+    const kv = memoryKV();
+    const live = await loadPuzzles({ fetchImpl: okFetch({ ...archiveJson, decisions: [decision] }), complete: vi.fn(), kv, today: "2026-10-29" });
+    expect(live).toMatchObject({ stale: false, offline: false });
+    expect(live.decisions.map((d) => d.day)).toEqual([20]);
+    expect(kv.data.has(ARCHIVE_CACHE_KEY)).toBe(true);
+
+    const complete = vi.fn<Complete>();
+    const later = await loadPuzzles({ fetchImpl: downFetch, complete, kv, today: "2026-10-30" });
+    expect(later).toMatchObject({ stale: true, offline: false });
+    expect(later.today.key).toBe("gm-20");
+    expect(later.archive.map((p) => p.key)).toEqual(["gm-19"]);
+    expect(later.decisions).toHaveLength(1);
+    expect(complete).not.toHaveBeenCalled();
   });
 });

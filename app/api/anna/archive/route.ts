@@ -1,14 +1,16 @@
 /**
- * GET /api/anna/archive — closed puzzles for the Anna Edition app, newest first.
- * The open (paid) puzzle is never included. CORS is open on purpose: Anna runs apps
+ * GET /api/anna/archive — closed puzzles for the Anna Edition app, newest first, plus the
+ * GM's latest decisions (no player addresses). The open (paid) puzzle is never included. CORS is open on purpose: Anna runs apps
  * in a sandboxed iframe whose origin is "null", and all of this is already public
  * through /api/state.
  */
 import { getGameStore } from "@/src/game";
+import { formatUsdc } from "@/src/wallet/usdc";
 
 export const dynamic = "force-dynamic";
 
 const MAX_PUZZLES = 30;
+const MAX_DECISIONS = 7;
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -16,9 +18,10 @@ const CORS = {
 };
 
 export async function GET() {
+  const store = getGameStore();
   let recent;
   try {
-    recent = await getGameStore().listChallenges(MAX_PUZZLES + 1);
+    recent = await store.listChallenges(MAX_PUZZLES + 1);
   } catch (err) {
     console.error("anna archive: store failed", err);
     return Response.json({ error: "unavailable" }, { status: 503, headers: { ...CORS, "Cache-Control": "no-store" } });
@@ -35,8 +38,30 @@ export async function GET() {
       commitment: c.commitment ?? null,
       salt: c.salt ?? null,
     }));
+  // The decision log is extra: if it fails, the puzzles still go out.
+  const decisions = await store
+    .listDecisions(MAX_DECISIONS)
+    .then((list) =>
+      list.map((d) => ({
+        day: d.day,
+        participants: d.participants,
+        winners: d.winners,
+        winRate: d.winRate,
+        rewardPerWinner: formatUsdc(d.rewardPerWinner),
+        totalPaid: formatUsdc(d.totalPaid),
+        treasuryAfter: formatUsdc(d.treasuryAfter),
+        nextDifficulty: d.nextDifficulty,
+        decidedBy: d.decidedBy,
+        reasoning: d.reasoning,
+        anchorTx: d.anchorTx ?? null,
+      })),
+    )
+    .catch((err) => {
+      console.error("anna archive: decision log failed", err);
+      return [];
+    });
   return Response.json(
-    { puzzles },
+    { puzzles, decisions },
     { headers: { ...CORS, "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
   );
 }

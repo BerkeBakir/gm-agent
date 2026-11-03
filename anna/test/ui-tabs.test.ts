@@ -11,4 +11,7 @@ describe("activeTab", () => {
   it("highlights Archive on the archive list", () => {
     expect(activeTab("archive", "gm-20", "gm-20")).toBe("archive");
   });
+  it("highlights the GM's log tab", () => {
+    expect(activeTab("gm", "gm-19", "gm-20")).toBe("gm");
+  });
 });
