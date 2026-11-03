@@ -198,7 +198,12 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
 
   function decisionItem(d: GmDecision) {
     const rate = d.winRate === null ? "no players" : `${d.winners} of ${d.participants} solved (${Math.round(d.winRate * 100)}%)`;
-    const money = [d.rewardPerWinner && `${d.rewardPerWinner} per winner`, d.treasuryAfter && `treasury ${d.treasuryAfter}`].filter(Boolean).join(" · ");
+    const money = [
+      d.winners > 0 && d.rewardPerWinner && `${d.rewardPerWinner} per winner`,
+      d.treasuryAfter && `treasury ${d.treasuryAfter} (testnet)`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     const item = el(
       "div",
       { className: "decision" },

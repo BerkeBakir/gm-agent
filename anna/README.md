@@ -22,9 +22,10 @@ npm run anna:validate   # from the repo root; builds app.js
 cd anna
 npx -y @anna-ai/cli@latest login --host https://anna.partners
 npx -y @anna-ai/cli@latest apps push --bundle-dir bundle
+npx -y @anna-ai/cli@latest apps sync-meta   # description + screenshots from app.json
 ```
 Then submit the version for review in the Developer Console. Review takes 3–5 business days.
 
 ## Changelog
-- **0.1.1** — If the newest GM puzzle was solved on an earlier day, today's streak puzzle is a bonus from Anna (the GM puzzle moves to the archive). Manifest declares `permissions` (llm.complete, storage.read/write). The Archive tab, not Today, is highlighted while an archive puzzle is open.
+- **0.1.1** — Review fixes: the app tries `gm.notvia.app` before `*.vercel.app` (unreachable on some networks), keeps the last archive for offline use, and shows a softer note with Retry. New "GM's log" tab with the GM's daily decisions and reasoning; the "real USDC prizes" footer is gone. Longer listing description and screenshots uploaded from `listing/`. Also: if the newest GM puzzle was solved on an earlier day, today's streak puzzle is a bonus from Anna (the GM puzzle moves to the archive). Manifest declares `permissions` (llm.complete, storage.read/write). The Archive tab, not Today, is highlighted while an archive puzzle is open.
 - **0.1.0** — First release.
