@@ -11,7 +11,6 @@
       "format": "static-spa",
       "entry": "index.html",
       "external_origins": [
-        "https://gm.notvia.app",
         "https://gm-agent-lime.vercel.app"
       ]
     },
