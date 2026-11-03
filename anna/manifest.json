@@ -39,6 +39,9 @@
       "storage": [
         "get",
         "set"
+      ],
+      "web": [
+        "fetch"
       ]
     }
   },

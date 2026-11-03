@@ -171,7 +171,8 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
   }
 
   function connectionNote(text: string) {
-    return el("div", { className: "note row" }, text, el("button", { className: "ghost small", disabled: busy, onclick: () => void retry() }, "Retry"));
+    const full = `${text} If Anna asks to allow web access, allow it and tap Retry.`;
+    return el("div", { className: "note row" }, full, el("button", { className: "ghost small", disabled: busy, onclick: () => void retry() }, "Retry"));
   }
 
   function gmLog() {

@@ -3,6 +3,9 @@
  * GM's latest decisions (no player addresses). The open (paid) puzzle is never included. CORS is open on purpose: Anna runs apps
  * in a sandboxed iframe whose origin is "null", and all of this is already public
  * through /api/state.
+ *
+ * `?as=text` sends the same JSON as text/plain: Anna's host-side `web.fetch` (the app's
+ * fallback on networks that block *.vercel.app) rejects application/json.
  */
 import { getGameStore } from "@/src/game";
 import { formatUsdc } from "@/src/wallet/usdc";
@@ -17,7 +20,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-export async function GET() {
+export async function GET(request?: Request) {
   const store = getGameStore();
   let recent;
   try {
@@ -60,10 +63,13 @@ export async function GET() {
       console.error("anna archive: decision log failed", err);
       return [];
     });
-  return Response.json(
-    { puzzles, decisions },
-    { headers: { ...CORS, "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
-  );
+  const headers = { ...CORS, "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" };
+  if (request && new URL(request.url).searchParams.get("as") === "text") {
+    return new Response(JSON.stringify({ puzzles, decisions }), {
+      headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+  return Response.json({ puzzles, decisions }, { headers });
 }
 
 export function OPTIONS() {

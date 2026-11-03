@@ -48,6 +48,16 @@ describe("GET /api/anna/archive", () => {
     expect(body.puzzles).toEqual([]);
   });
 
+  it("sends the same JSON as text/plain with ?as=text (for Anna web.fetch)", async () => {
+    await seed(3);
+    const { GET } = await import("../app/api/anna/archive/route");
+    const json = await (await GET()).json();
+    const res = await GET(new Request("https://gm.example/api/anna/archive?as=text"));
+    expect(res.headers.get("content-type")).toMatch(/^text\/plain/);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(JSON.parse(await res.text())).toEqual(json);
+  });
+
   it("caps the list at 30", async () => {
     await seed(35);
     const { GET } = await import("../app/api/anna/archive/route");
