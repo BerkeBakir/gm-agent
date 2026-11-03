@@ -2,11 +2,8 @@ import { bankPuzzle } from "./bank";
 import { type Progress, recordOf } from "./progress";
 import type { Complete, KV, Puzzle } from "./types";
 
-/** Tried in order. The custom domain comes first: *.vercel.app is unreachable from some networks. */
-export const ARCHIVE_URLS = [
-  "https://gm.notvia.app/api/anna/archive",
-  "https://gm-agent-lime.vercel.app/api/anna/archive",
-];
+/** Tried in order; add a mirror here if the main host is unreachable from some networks. */
+export const ARCHIVE_URLS = ["https://gm-agent-lime.vercel.app/api/anna/archive"];
 const FALLBACK_PREFIX = "fallback/";
 /** The last archive response that had puzzles, used when the GM can't be reached. */
 export const ARCHIVE_CACHE_KEY = "archive/last";

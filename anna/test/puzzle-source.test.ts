@@ -220,8 +220,8 @@ describe("reaching the GM", () => {
     anchorTx: "0xabc123",
   };
 
-  it("tries the custom domain first, then vercel.app", async () => {
-    expect(ARCHIVE_URLS[0]).not.toContain("vercel.app");
+  it("tries each archive URL in order", async () => {
+    expect(ARCHIVE_URLS).toEqual(["https://gm-agent-lime.vercel.app/api/anna/archive"]);
     const seen: string[] = [];
     const fetchImpl = vi.fn(async (url: string) => {
       seen.push(url);
