@@ -1,4 +1,4 @@
-import { makeComplete, makeKV, type AnnaRuntimeLike } from "./anna-host";
+import { asTextUrl, makeComplete, makeFetchWithWebFallback, makeKV, type AnnaRuntimeLike } from "./anna-host";
 import { localDate } from "./progress";
 import { startApp } from "./ui";
 
@@ -19,7 +19,7 @@ try {
   await startApp(root, {
     complete: makeComplete(anna),
     kv: makeKV(anna),
-    fetchImpl: (input, init) => fetch(input, init),
+    fetchImpl: makeFetchWithWebFallback(anna, (input, init) => fetch(input, init), asTextUrl),
     today: () => localDate(),
   });
 } catch (err) {
