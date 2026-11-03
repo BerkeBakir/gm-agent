@@ -34,7 +34,7 @@ npx -y @anna-ai/cli@latest apps submit-review gm-daily-riddle
 Review takes 3–5 business days; approval publishes right away. Don't cut a new version while one is in review unless you mean to replace it (`submit-review` re-pins the review to the newest version).
 
 ## Changelog
-- **Unreleased** — If the direct request fails, the app loads the archive through Anna's `web.fetch` (manifest declares `ui.host_api.web: ["fetch"]`); the offline note tells users to allow web access and tap Retry. Ship after 0.1.2's review.
+- **0.1.3** — If the direct request fails, the app loads the archive through Anna's `web.fetch` (manifest declares `ui.host_api.web: ["fetch"]`); the offline note tells users to allow web access and tap Retry.
 - **0.1.2** — Uses only the project's own host (`gm-agent-lime.vercel.app`); the `gm.notvia.app` mirror from 0.1.1 was attached to an unrelated project by mistake and is removed.
 - **0.1.1** — Review fixes: the app tries `gm.notvia.app` (removed in 0.1.2) before `*.vercel.app`, keeps the last archive for offline use, and shows a softer note with Retry. New "GM's log" tab with the GM's daily decisions and reasoning; the "real USDC prizes" footer is gone. Longer listing description and screenshots uploaded from `listing/`. Also: if the newest GM puzzle was solved on an earlier day, today's streak puzzle is a bonus from Anna (the GM puzzle moves to the archive). Manifest declares `permissions` (llm.complete, storage.read/write). The Archive tab, not Today, is highlighted while an archive puzzle is open.
 - **0.1.0** — First release.
