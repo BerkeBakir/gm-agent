@@ -183,3 +183,8 @@ Eski not — kalan H3 işleri (17 Eki): video senaryosu HAZIR → `brand/x/week3
 - Leftover: `D:/Claude Code/.tmp-shots` (playwright-core scratch for screenshots) can be deleted.
 - 3 Nov (later): `gm.notvia.app` attached by Berke (Valid Configuration); PR #19 merged (c6dd8d0), prod deploy OK; `gm.notvia.app/api/anna/archive` returns 28 puzzles + 7 decisions with CORS *. Bundle built + `validate --strict` OK. `apps push` was blocked by the classifier → Berke runs: `cd "D:\Claude Code\gm-agent\anna"`; `apps push --bundle-dir bundle`; `apps sync-meta`; `apps cut 0.1.1`; `apps submit-review gm-daily-riddle`; then send `docs/anna-review-reply.md`.
 - 3 Nov (later): Berke ran push (draft unchanged, rev 3), sync-meta (5 shots uploaded), cut 0.1.1 (version_id 1929), submit-review → **v0.1.1 pending_review**. Next: send the reply (`docs/anna-review-reply.md`), then wait for the review.
+
+### 12f. 3 Nov: gm.notvia.app removed (Berke didn't want GM tied to Notvia)
+- PR #20 merged (3dd6474): app uses only `gm-agent-lime.vercel.app`; cache + softer note + Retry stay. Ships as **v0.1.2** (replaces v0.1.1 in review). Bundle built, validate OK.
+- Berke's steps: (1) Vercel → gm-agent → Settings → Domains → remove `gm.notvia.app`. (2) `cd "D:\Claude Code\gm-agent\anna"`; `apps push --bundle-dir bundle`; `apps cut 0.1.2`; `apps submit-review gm-daily-riddle` (re-pins review to 0.1.2). (3) Send the correction email draft in Gmail (reply in the review thread).
+- Berke doesn't want to pay for a domain or use Notvia. If the reviewers can't reach vercel.app again: free options are an is-a.dev subdomain or Anna `web.fetch` (untested). Ask before picking.
