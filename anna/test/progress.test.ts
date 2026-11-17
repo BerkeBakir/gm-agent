@@ -4,11 +4,15 @@ import {
   addWrongGuess,
   currentStreak,
   emptyProgress,
+  guessesLeft,
+  isOver,
   localDate,
+  MAX_GUESSES,
   MAX_HINTS,
   previousDate,
   recordOf,
   recordSolve,
+  revealAnswer,
   scoreFor,
 } from "../src/progress";
 
@@ -81,5 +85,38 @@ describe("solving and streaks", () => {
     expect(currentStreak(p, "2026-10-27")).toBe(1);
     expect(currentStreak(p, "2026-10-28")).toBe(1);
     expect(currentStreak(p, "2026-10-29")).toBe(0);
+  });
+});
+
+describe("end of round", () => {
+  const today = "2026-11-17";
+  it("ends the round after 3 wrong guesses and then ignores guesses, hints and solves", () => {
+    let p = emptyProgress();
+    expect(MAX_GUESSES).toBe(3);
+    expect(guessesLeft(recordOf(p, "gm-1"))).toBe(3);
+    for (let i = 0; i < 5; i++) p = addWrongGuess(p, "gm-1");
+    const rec = recordOf(p, "gm-1");
+    expect(rec.wrongGuesses).toBe(3);
+    expect(guessesLeft(rec)).toBe(0);
+    expect(isOver(rec)).toBe(true);
+    expect(addHint(p, "gm-1", "late")).toBe(p);
+    const after = recordSolve(p, "gm-1", { countsForStreak: true, today });
+    expect(after).toBe(p);
+    expect(after.totalScore).toBe(0);
+  });
+  it("reveals the answer with no points and no streak", () => {
+    let p = addWrongGuess(emptyProgress(), "gm-2");
+    p = revealAnswer(p, "gm-2");
+    expect(recordOf(p, "gm-2")).toMatchObject({ revealed: true, solved: false, score: 0, wrongGuesses: 1 });
+    expect(isOver(recordOf(p, "gm-2"))).toBe(true);
+    expect(recordSolve(p, "gm-2", { countsForStreak: true, today })).toBe(p);
+    expect(p.streak).toBe(0);
+  });
+  it("does not reveal a solved puzzle", () => {
+    const solved = recordSolve(emptyProgress(), "gm-3", { countsForStreak: false, today });
+    expect(revealAnswer(solved, "gm-3")).toBe(solved);
+  });
+  it("treats old records without the revealed field as still open", () => {
+    expect(isOver({ hints: [], wrongGuesses: 2, solved: false, score: 0 })).toBe(false);
   });
 });

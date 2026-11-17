@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 4,
   "tags": [
     "game",
     "puzzle",
@@ -31,23 +31,6 @@
         "resizable": true,
         "single_instance": true
       }
-    ],
-    "host_api": {
-      "llm": [
-        "complete"
-      ],
-      "storage": [
-        "get",
-        "set"
-      ],
-      "web": [
-        "fetch"
-      ]
-    }
-  },
-  "permissions": [
-    "llm.complete",
-    "storage.read",
-    "storage.write"
-  ]
+    ]
+  }
 }

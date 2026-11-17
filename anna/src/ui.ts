@@ -4,10 +4,14 @@ import {
   addHint,
   addWrongGuess,
   currentStreak,
+  guessesLeft,
+  isOver,
+  MAX_GUESSES,
   MAX_HINTS,
   type Progress,
   recordOf,
   recordSolve,
+  revealAnswer,
 } from "./progress";
 import { loadProgress, saveProgress } from "./progress-store";
 import { type GmDecision, loadPuzzles, type LoadedPuzzles } from "./puzzle-source";
@@ -123,10 +127,23 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
     }
     card.append(el("div", { className: "question" }, p.question));
 
+    const over = isOver(rec);
     if (rec.solved) {
       card.append(el("div", { className: "ok" }, `Solved! +${rec.score} points. The answer: ${p.answer}`));
-      if (isVerified(p)) card.append(el("div", { className: "note" }, "verified ✓ This answer matches the commitment the GM published before the puzzle opened."));
-    } else {
+    } else if (over) {
+      const why = rec.revealed ? "You gave up on this one." : `Out of guesses (${MAX_GUESSES} of ${MAX_GUESSES} used).`;
+      card.append(
+        el("div", { className: "bad" }, `Round over. ${why}`),
+        el("div", { className: "answer" }, `The answer: ${p.answer}`),
+        el("div", { className: "note" }, isToday ? "No points this time. Come back tomorrow for a new riddle." : "No points this time."),
+      );
+    }
+    if (over && isVerified(p)) {
+      card.append(el("div", { className: "note" }, "verified ✓ This answer matches the commitment the GM published before the puzzle opened."));
+    }
+    if (!over) {
+      const left = guessesLeft(rec);
+      card.append(el("div", { className: "note" }, `${left} of ${MAX_GUESSES} guesses left`));
       const input = el("input", { placeholder: "Your answer", maxLength: 80, autocomplete: "off", value: draft });
       input.oninput = () => {
         draft = input.value;
@@ -144,7 +161,7 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
 
     if (rec.hints.length) card.append(el("ol", { className: "hints" }, ...rec.hints.map((h) => el("li", {}, h))));
 
-    if (!rec.solved) {
+    if (!over) {
       const hintBtn = el(
         "button",
         { className: "ghost", disabled: busy || rec.hints.length >= MAX_HINTS, onclick: () => void hint(p) },
@@ -154,7 +171,12 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
       if (lastWrongGuess) {
         row.append(el("button", { className: "ghost", disabled: busy, onclick: () => void explain(p) }, "Why was I wrong?"));
       }
+      row.append(el("button", { className: "ghost", disabled: busy, onclick: () => void giveUp(p) }, "Give up & show answer"));
       card.append(row);
+    } else if (!rec.solved && lastWrongGuess) {
+      card.append(
+        el("div", { className: "row" }, el("button", { className: "ghost", disabled: busy, onclick: () => void explain(p) }, "Why was I wrong?")),
+      );
     }
     return card;
   }
@@ -162,9 +184,11 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
   function archiveList() {
     const list = el("div", { className: "archive" });
     for (const p of puzzles.archive) {
-      const solved = recordOf(progress, p.key).solved;
+      const rec = recordOf(progress, p.key);
+      const solved = rec.solved;
+      const mark = solved ? "✓ " : isOver(rec) ? "✗ " : "";
       list.append(
-        el("button", { className: solved ? "done" : "", onclick: () => switchTo(p) }, `${solved ? "✓ " : ""}Day ${p.day}: ${p.question.slice(0, 60)}${p.question.length > 60 ? "…" : ""}`),
+        el("button", { className: solved ? "done" : "", onclick: () => switchTo(p) }, `${mark}Day ${p.day}: ${p.question.slice(0, 60)}${p.question.length > 60 ? "…" : ""}`),
       );
     }
     return el("div", { className: "card" }, el("div", { className: "meta" }, "Older GM puzzles · score only, no streak"), list);
@@ -248,6 +272,14 @@ export async function startApp(root: HTMLElement, deps: AppDeps): Promise<void> 
     render();
     await persist();
     if (storageNote) render(); // save failed: show the note (once)
+  }
+
+  async function giveUp(p: Puzzle) {
+    progress = revealAnswer(progress, p.key);
+    feedback = null;
+    render();
+    await persist();
+    if (storageNote) render();
   }
 
   async function hint(p: Puzzle) {

@@ -1,10 +1,14 @@
 export const MAX_HINTS = 3;
+/** Wrong guesses allowed per puzzle; after that the round ends and the answer is shown. */
+export const MAX_GUESSES = 3;
 
 export interface PuzzleRecord {
   hints: string[];
   wrongGuesses: number;
   solved: boolean;
   score: number;
+  /** The player gave up and asked for the answer (no points). */
+  revealed?: boolean;
 }
 
 export interface Progress {
@@ -29,25 +33,41 @@ export function scoreFor(hintsUsed: number): number {
   return 100 - 25 * Math.min(Math.max(hintsUsed, 0), MAX_HINTS);
 }
 
+export function guessesLeft(rec: PuzzleRecord): number {
+  return Math.max(0, MAX_GUESSES - rec.wrongGuesses);
+}
+
+/** Solved, given up, or out of guesses: no more guesses or hints. */
+export function isOver(rec: PuzzleRecord): boolean {
+  return rec.solved || rec.revealed === true || guessesLeft(rec) === 0;
+}
+
 function withRecord(p: Progress, key: string, rec: PuzzleRecord): Progress {
   return { ...p, history: { ...p.history, [key]: rec } };
 }
 
 export function addHint(p: Progress, key: string, hint: string): Progress {
   const rec = recordOf(p, key);
-  if (rec.solved || rec.hints.length >= MAX_HINTS) return p;
+  if (isOver(rec) || rec.hints.length >= MAX_HINTS) return p;
   return withRecord(p, key, { ...rec, hints: [...rec.hints, hint] });
 }
 
 export function addWrongGuess(p: Progress, key: string): Progress {
   const rec = recordOf(p, key);
-  if (rec.solved) return p;
+  if (isOver(rec)) return p;
   return withRecord(p, key, { ...rec, wrongGuesses: rec.wrongGuesses + 1 });
+}
+
+/** End the round without points and show the answer. */
+export function revealAnswer(p: Progress, key: string): Progress {
+  const rec = recordOf(p, key);
+  if (isOver(rec)) return p;
+  return withRecord(p, key, { ...rec, revealed: true });
 }
 
 export function recordSolve(p: Progress, key: string, opts: { countsForStreak: boolean; today: string }): Progress {
   const rec = recordOf(p, key);
-  if (rec.solved) return p;
+  if (isOver(rec)) return p;
   const score = scoreFor(rec.hints.length);
   const next: Progress = {
     ...withRecord(p, key, { ...rec, solved: true, score }),

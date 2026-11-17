@@ -9,7 +9,7 @@ A free, wallet-free version of GM Agent for the [Anna](https://anna.partners) ap
 - Server side: `GET /api/anna/archive` in the main app (closed puzzles only). `?as=text` sends the same JSON as `text/plain` for Anna's `web.fetch`.
 
 ## Networks that block `*.vercel.app`
-The app first fetches the archive directly. If that request fails (some networks block `*.vercel.app`), it asks Anna's server to fetch `…/api/anna/archive?as=text` with `anna.web.fetch` (Anna's server can still reach the host). This needs `ui.host_api.web: ["fetch"]` in the manifest and the user's web grant: the first call returns `APP_NOT_GRANTED` and Anna shows a consent card; after the user allows it, Retry loads the puzzles. Each `web.fetch` uses 1 CU of the user's Anna quota, so it only runs when the direct request fails. If both fail, the app uses the last saved archive, then an Anna/bank puzzle.
+The app first fetches the archive directly. If that request fails (some networks block `*.vercel.app`), it asks Anna's server to fetch `…/api/anna/archive?as=text` with `anna.web.fetch` (Anna's server can still reach the host). Since manifest schema 4 the Host API needs no declaration, but `web.fetch` still needs the user's web grant: the first call returns `APP_NOT_GRANTED` and Anna shows a consent card; after the user allows it, Retry loads the puzzles. Each `web.fetch` uses 1 CU of the user's Anna quota, so it only runs when the direct request fails. If both fail, the app uses the last saved archive, then an Anna/bank puzzle.
 
 ## Commands (from the repo root)
 ```bash
@@ -34,6 +34,7 @@ npx -y @anna-ai/cli@latest apps submit-review gm-daily-riddle
 Review takes 3–5 business days; approval publishes right away. Don't cut a new version while one is in review unless you mean to replace it (`submit-review` re-pins the review to the newest version).
 
 ## Changelog
+- **0.1.4** — Review fix: each puzzle allows 3 guesses ("N of 3 guesses left"). After the third wrong guess the round ends and shows the answer (no points, no streak). "Give up & show answer" ends the round at any time. Archive marks rounds that ended unsolved with ✗. Manifest moves to schema 4 (the retired `permissions` / `ui.host_api` fields are gone; the Host API needs no declaration).
 - **0.1.3** — If the direct request fails, the app loads the archive through Anna's `web.fetch` (manifest declares `ui.host_api.web: ["fetch"]`); the offline note tells users to allow web access and tap Retry.
 - **0.1.2** — Uses only the project's own host (`gm-agent-lime.vercel.app`); the `gm.notvia.app` mirror from 0.1.1 was attached to an unrelated project by mistake and is removed.
 - **0.1.1** — Review fixes: the app tries `gm.notvia.app` (removed in 0.1.2) before `*.vercel.app`, keeps the last archive for offline use, and shows a softer note with Retry. New "GM's log" tab with the GM's daily decisions and reasoning; the "real USDC prizes" footer is gone. Longer listing description and screenshots uploaded from `listing/`. Also: if the newest GM puzzle was solved on an earlier day, today's streak puzzle is a bonus from Anna (the GM puzzle moves to the archive). Manifest declares `permissions` (llm.complete, storage.read/write). The Archive tab, not Today, is highlighted while an archive puzzle is open.
